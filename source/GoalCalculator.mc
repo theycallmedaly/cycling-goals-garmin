@@ -44,7 +44,7 @@ class GoalCalculator {
                 } else {
                     totals[0] += miles;
                     if (date.month == today.month) { totals[1] += miles; }
-                    if (daysBetween(date, today) < today.day_of_week) { totals[2] += miles; }
+                    if (daysBetween(date, today) <= daysSinceMonday(today)) { totals[2] += miles; }
                 }
             }
             item = iterator.next();
@@ -63,7 +63,12 @@ class GoalCalculator {
         var bm = Gregorian.moment({:year=>b.year, :month=>b.month, :day=>b.day});
         return ((bm.value() - am.value()) / 86400).toNumber();
     }
-    private static function daysRemainingInWeek(today as Gregorian.Info) as Number { return 8 - today.day_of_week; }
+    private static function daysSinceMonday(today as Gregorian.Info) as Number {
+        return today.day_of_week == 1 ? 6 : today.day_of_week - 2;
+    }
+    private static function daysRemainingInWeek(today as Gregorian.Info) as Number {
+        return today.day_of_week == 1 ? 1 : 9 - today.day_of_week;
+    }
     private static function daysRemainingInMonth(today as Gregorian.Info) as Number {
         return daysInMonth(today.year, today.month) - today.day + 1;
     }
@@ -80,4 +85,3 @@ class GoalCalculator {
         return (month == 4 || month == 6 || month == 9 || month == 11) ? 30 : 31;
     }
 }
-
