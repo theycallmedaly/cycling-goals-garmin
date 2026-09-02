@@ -1,29 +1,38 @@
 # Cycling Goals for Garmin
 
-Cycling Goals for Garmin is a Garmin Connect IQ app for Edge cycling computers. It will help riders understand whether they are on pace for annual, monthly, and weekly distance and elevation-gain goals—and what average they need from today forward to finish each goal.
+A Garmin Edge Connect IQ data field that answers one question during a ride: **how many miles remain for today?**
 
-## Planned goals
+## Distance-only MVP
 
-- Annual distance and elevation gain
-- Monthly distance and elevation gain
-- Weekly distance and elevation gain
+The rider configures yearly, monthly, weekly, and baseline daily distance goals using the Edge's up/down controls. The field uses cycling activity history and the current ride's elapsed distance to calculate today's remaining target.
 
-For each goal, the app is intended to show progress, remaining amount, percentage complete, expected progress today, ahead/behind pace, original required pace, and required pace from today forward.
+The default target for today is the largest of the baseline daily goal and the daily averages required to finish the yearly, monthly, and weekly goals.
 
-## Project status
+On Sunday, the default includes all distance still required to close the weekly goal. If Sunday falls within the final five calendar days of the month, it also includes all distance required to close the monthly goal. Because a ride counts toward both periods, the larger remainder is used rather than adding them.
 
-Initial Connect IQ project skeleton only. Product behavior and Garmin-specific architecture have not yet been implemented.
+Completed rides earlier today and the current ride are subtracted from today's target. The displayed value never falls below zero.
 
-Before implementation, the project still needs decisions about:
+Elevation goals are intentionally paused because Connect IQ's activity-history records expose distance but not historical elevation gain.
 
-- Connect IQ app type and user experience
-- Supported Edge models
-- Goal configuration
-- Activity and progress data source
-- Canonical goal-calculation edge cases
+## Current interface
 
-## Development prerequisites
+```text
+REMAINING FOR TODAY
 
-Install the Garmin Connect IQ SDK and configure a developer key. The project uses Monkey C and the standard Connect IQ project layout.
+0.0
 
-The current manifest provisionally defines a standalone Connect IQ device app and targets Edge 540, 840, 1040, and 1050. Those choices should be reviewed before feature development.
+MILES
+```
+
+If goals are missing, the data field directs the rider to its standard Settings screen. That screen always remains available for updating all four distance goals.
+
+## Supported devices and prerequisites
+
+- Edge 540 / 540 Solar
+- Edge 840 / 840 Solar
+- Edge 1040 / 1040 Solar
+- Edge 1050
+- Connect IQ API 5.2.2 or newer
+- Garmin Connect IQ SDK and a developer key for local builds
+
+This is an early MVP implementation. It has not yet been compiled because the Garmin Connect IQ SDK is not installed in the development environment.
