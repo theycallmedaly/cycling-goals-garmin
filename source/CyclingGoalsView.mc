@@ -6,7 +6,9 @@ using Toybox.WatchUi;
 
 class CyclingGoalsView extends WatchUi.DataField {
     private var _remainingMeters as Lang.Float = 0.0;
+    private var _distanceTargetMeters as Lang.Float = 0.0;
     private var _remainingElevationMeters as Lang.Float = 0.0;
+    private var _elevationTargetMeters as Lang.Float = 0.0;
     private var _configured as Lang.Boolean = false;
 
     function initialize() { DataField.initialize(); }
@@ -14,8 +16,12 @@ class CyclingGoalsView extends WatchUi.DataField {
     function compute(info as Activity.Info) {
         _configured = GoalStore.hasGoals();
         if (!_configured) { return "SET GOALS"; }
-        _remainingMeters = GoalCalculator.remainingForToday(info);
-        _remainingElevationMeters = GoalCalculator.remainingElevationForToday(info);
+        var distanceState = GoalCalculator.distanceStateForToday(info);
+        _remainingMeters = distanceState[0];
+        _distanceTargetMeters = distanceState[1];
+        var elevationState = GoalCalculator.elevationStateForToday(info);
+        _remainingElevationMeters = elevationState[0];
+        _elevationTargetMeters = elevationState[1];
         return DistanceUnits.fromMeters(_remainingMeters);
     }
 
@@ -31,6 +37,14 @@ class CyclingGoalsView extends WatchUi.DataField {
                 Application.loadResource(Rez.Strings.OpenSettings), Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
+        var distanceBackground = progressColor(_distanceTargetMeters, _remainingMeters);
+        var elevationBackground = progressColor(_elevationTargetMeters, _remainingElevationMeters);
+        dc.setColor(distanceBackground, distanceBackground);
+        dc.fillRectangle(0, 0, dc.getWidth(), y);
+        dc.setColor(elevationBackground, elevationBackground);
+        dc.fillRectangle(0, y, dc.getWidth(), dc.getHeight() - y);
+
+        dc.setColor(Graphics.COLOR_WHITE, distanceBackground);
         dc.drawText(x, 8, Graphics.FONT_XTINY,
             Application.loadResource(Rez.Strings.RemainingToday), Graphics.TEXT_JUSTIFY_CENTER);
         var dividerY = y;
@@ -42,11 +56,19 @@ class CyclingGoalsView extends WatchUi.DataField {
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, upperCenter + 33, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
 
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawLine(24, dividerY, dc.getWidth() - 24, dividerY);
 
+        dc.setColor(Graphics.COLOR_WHITE, elevationBackground);
         dc.drawText(x, lowerCenter - 8, Graphics.FONT_NUMBER_HOT,
             ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, lowerCenter + 33, Graphics.FONT_SMALL, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    private function progressColor(target as Lang.Numeric, remaining as Lang.Numeric) as Graphics.ColorType {
+        if (target <= 0 || remaining <= 0) { return Graphics.COLOR_GREEN; }
+        var completedFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
+        return completedFraction < 0.75 ? Graphics.COLOR_RED : Graphics.COLOR_BLACK;
     }
 }

@@ -14,6 +14,8 @@ Completed rides earlier today and the current ride are subtracted from today's t
 
 The rider can also set a daily elevation goal. It defaults to 1,370 feet and is reduced only by the current ride's live total ascent. Historical climbing is intentionally excluded because Connect IQ's activity-history records expose distance but not elevation gain.
 
+On supported color devices, each half communicates its own progress: red below 75% complete, black from 75% through 99.9%, and green when the goal is met. Distance and elevation change color independently.
+
 ## Current interface
 
 ```text

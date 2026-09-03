@@ -6,6 +6,11 @@ using Toybox.UserProfile;
 
 class GoalCalculator {
     static function remainingForToday(info as Activity.Info) as Lang.Float {
+        return distanceStateForToday(info)[0];
+    }
+
+    // Remaining distance followed by today's distance target, both in meters.
+    static function distanceStateForToday(info as Activity.Info) as Lang.Array<Lang.Float> {
         var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var goals = GoalStore.getGoals();
         var totals = historyBeforeAndToday(today);
@@ -20,12 +25,18 @@ class GoalCalculator {
             : override.toFloat();
 
         var currentRide = info.elapsedDistance == null ? 0.0 : info.elapsedDistance.toFloat();
-        return remainingAfterProgress(suggested, totals[3], currentRide);
+        return [remainingAfterProgress(suggested, totals[3], currentRide), suggested];
     }
 
     static function remainingElevationForToday(info as Activity.Info) as Lang.Float {
+        return elevationStateForToday(info)[0];
+    }
+
+    // Remaining elevation followed by today's elevation target, both in meters.
+    static function elevationStateForToday(info as Activity.Info) as Lang.Array<Lang.Float> {
         var currentAscent = info.totalAscent == null ? 0.0 : info.totalAscent.toFloat();
-        return remainingAfterProgress(GoalStore.getDailyElevationGoal(), 0.0, currentAscent);
+        var target = GoalStore.getDailyElevationGoal().toFloat();
+        return [remainingAfterProgress(target, 0.0, currentAscent), target];
     }
 
     static function calculateAutomaticGoal(
