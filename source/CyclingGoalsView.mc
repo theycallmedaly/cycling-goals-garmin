@@ -67,8 +67,12 @@ class CyclingGoalsView extends WatchUi.DataField {
     }
 
     private function progressColor(target as Lang.Numeric, remaining as Lang.Numeric) as Graphics.ColorType {
-        if (target <= 0 || remaining <= 0) { return Graphics.COLOR_GREEN; }
+        if (target <= 0 || remaining <= 0) {
+            return Graphics.createColor(255, 71, 122, 72);
+        }
         var completedFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        return completedFraction < 0.75 ? Graphics.COLOR_RED : Graphics.COLOR_BLACK;
+        return completedFraction < 0.75
+            ? Graphics.createColor(255, 155, 58, 50)
+            : Graphics.COLOR_BLACK;
     }
 }
