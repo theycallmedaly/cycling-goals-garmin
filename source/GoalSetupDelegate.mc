@@ -9,9 +9,9 @@ class GoalSetupDelegate extends WatchUi.Menu2InputDelegate {
     }
 }
 
-class GoalEditDelegate extends WatchUi.BehaviorDelegate {
+class GoalEditDelegate extends WatchUi.InputDelegate {
     private var _view as GoalEditView;
-    function initialize(view as GoalEditView) { BehaviorDelegate.initialize(); _view = view; }
+    function initialize(view as GoalEditView) { InputDelegate.initialize(); _view = view; }
 
     function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
         return _view.handleTap(event.getCoordinates());
