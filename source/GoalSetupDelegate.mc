@@ -16,4 +16,8 @@ class GoalEditDelegate extends WatchUi.BehaviorDelegate {
     function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
         return _view.handleTap(event.getCoordinates());
     }
+
+    function onHold(event as WatchUi.ClickEvent) as Lang.Boolean {
+        return _view.handleHold(event.getCoordinates());
+    }
 }

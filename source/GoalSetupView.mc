@@ -49,7 +49,15 @@ class GoalEditView extends WatchUi.View {
     }
 
     function change(direction as Lang.Number) {
-        var step = stepSize();
+        changeBy(direction, 1);
+    }
+
+    function changeFast(direction as Lang.Number) {
+        changeBy(direction, 10);
+    }
+
+    private function changeBy(direction as Lang.Number, multiplier as Lang.Number) {
+        var step = stepSize() * multiplier;
         _value = maximum(0, _value + (direction * step));
         WatchUi.requestUpdate();
     }
@@ -76,6 +84,14 @@ class GoalEditView extends WatchUi.View {
             if (point[0] < _width/2) { save(); }
             else { restore(); }
             WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
+        return false;
+    }
+
+    function handleHold(point as Lang.Array<Lang.Number>) as Lang.Boolean {
+        if (point[1] >= 105 && point[1] <= (_height - 70)) {
+            changeFast(point[0] < _width/2 ? 1 : -1);
             return true;
         }
         return false;

@@ -6,6 +6,9 @@ const MONTH_KEY = "monthDistanceMeters";
 const WEEK_KEY = "weekDistanceMeters";
 const DAILY_OVERRIDE_KEY = "dailyOverrideMeters";
 const DAILY_OVERRIDE_DATE_KEY = "dailyOverrideDate";
+const DEFAULT_YEAR_METERS = 11265408.0;
+const DEFAULT_MONTH_METERS = 804672.0;
+const DEFAULT_WEEK_METERS = 160934.4;
 
 class GoalStore {
     static function hasGoals() as Lang.Boolean {
@@ -15,7 +18,11 @@ class GoalStore {
     }
 
     static function getGoals() as Lang.Array<Lang.Numeric> {
-        return [valueOrZero(YEAR_KEY), valueOrZero(MONTH_KEY), valueOrZero(WEEK_KEY)];
+        return [
+            valueOrDefault(YEAR_KEY, DEFAULT_YEAR_METERS),
+            valueOrDefault(MONTH_KEY, DEFAULT_MONTH_METERS),
+            valueOrDefault(WEEK_KEY, DEFAULT_WEEK_METERS)
+        ];
     }
 
     static function saveGoals(goals as Lang.Array<Lang.Numeric>) as Void {
@@ -39,8 +46,8 @@ class GoalStore {
         Application.Storage.setValue(DAILY_OVERRIDE_KEY, meters);
     }
 
-    private static function valueOrZero(key as Lang.String) as Lang.Numeric {
+    private static function valueOrDefault(key as Lang.String, defaultValue as Lang.Numeric) as Lang.Numeric {
         var value = Application.Storage.getValue(key);
-        return value == null ? 0 : value;
+        return value == null ? defaultValue : value;
     }
 }
