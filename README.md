@@ -1,8 +1,8 @@
 # Cycling Goals for Garmin
 
-A Garmin Edge Connect IQ data field that answers one question during a ride: **how much distance remains for today?**
+A Garmin Edge Connect IQ data field that shows how much distance and climbing remain for today's ride.
 
-## Distance-only MVP
+## Current MVP
 
 The rider configures yearly, monthly, and weekly distance goals in the field's on-device settings. The field uses cycling activity history and the current ride's elapsed distance to calculate today's target automatically. A rider may set a temporary override for today; it expires when the date changes.
 
@@ -12,7 +12,7 @@ On Sunday, the default includes all distance still required to close the weekly 
 
 Completed rides earlier today and the current ride are subtracted from today's target. The displayed value never falls below zero.
 
-Elevation goals are intentionally paused because Connect IQ's activity-history records expose distance but not historical elevation gain.
+The rider can also set a daily elevation goal. It defaults to 1,370 feet and is reduced only by the current ride's live total ascent. Historical climbing is intentionally excluded because Connect IQ's activity-history records expose distance but not elevation gain.
 
 ## Current interface
 
@@ -22,13 +22,19 @@ REMAINING FOR TODAY
 0.0
 
 MILES or KM
+
+----------------
+
+1370
+
+FT or M
 ```
 
-If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for Daily, Weekly, Monthly, and Yearly. Daily is automatic unless the rider creates a same-day override. Weekly, monthly, and yearly values persist.
+If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for Daily Distance, Daily Elevation, Weekly, Monthly, and Yearly. Daily distance is automatic unless the rider creates a same-day override. The daily elevation goal and weekly, monthly, and yearly distance goals persist.
 
 First-time defaults are 100 miles weekly, 500 miles monthly, and 7,000 miles yearly. They are converted for display when the device uses metric units. Goal editing uses Garmin's native picker so values redraw reliably and inherit the device's standard touch behavior.
 
-All distances are stored internally in meters. Display and editing follow the unit system selected in Garmin's device settings.
+Distances and elevations are stored internally in meters. Display and editing follow the distance and elevation units selected in Garmin's device settings.
 
 ## Scenario tests
 
@@ -47,4 +53,4 @@ The source includes Garmin simulator unit tests for the agreed scenarios:
 - Connect IQ API 5.2.2 or newer
 - Garmin Connect IQ SDK and a developer key for local builds
 
-The distance-only prototype compiles successfully with Connect IQ SDK 9.2.0 for all three supported Edge targets. Its four calculation scenarios pass in Garmin's Edge 840 simulator.
+The prototype compiles successfully with Connect IQ SDK 9.2.0 for all three supported Edge targets. Its four distance-calculation scenarios pass in Garmin's Edge 840 simulator.

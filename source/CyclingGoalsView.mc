@@ -6,6 +6,7 @@ using Toybox.WatchUi;
 
 class CyclingGoalsView extends WatchUi.DataField {
     private var _remainingMeters as Lang.Float = 0.0;
+    private var _remainingElevationMeters as Lang.Float = 0.0;
     private var _configured as Lang.Boolean = false;
 
     function initialize() { DataField.initialize(); }
@@ -14,6 +15,7 @@ class CyclingGoalsView extends WatchUi.DataField {
         _configured = GoalStore.hasGoals();
         if (!_configured) { return "SET GOALS"; }
         _remainingMeters = GoalCalculator.remainingForToday(info);
+        _remainingElevationMeters = GoalCalculator.remainingElevationForToday(info);
         return DistanceUnits.fromMeters(_remainingMeters);
     }
 
@@ -31,9 +33,20 @@ class CyclingGoalsView extends WatchUi.DataField {
         }
         dc.drawText(x, 8, Graphics.FONT_XTINY,
             Application.loadResource(Rez.Strings.RemainingToday), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x, y, Graphics.FONT_NUMBER_THAI_HOT,
+        var dividerY = y;
+        var upperCenter = (28 + dividerY) / 2;
+        var lowerCenter = dividerY + ((dc.getHeight() - dividerY) / 2);
+
+        dc.drawText(x, upperCenter - 8, Graphics.FONT_NUMBER_HOT,
             DistanceUnits.fromMeters(_remainingMeters).format("%.2f"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(x, y + 34, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, upperCenter + 33, Graphics.FONT_XTINY, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
+
+        dc.drawLine(24, dividerY, dc.getWidth() - 24, dividerY);
+
+        dc.drawText(x, lowerCenter - 8, Graphics.FONT_NUMBER_HOT,
+            ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f"),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(x, lowerCenter + 33, Graphics.FONT_XTINY, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
     }
 }

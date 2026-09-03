@@ -22,6 +22,11 @@ class GoalPickerDelegate extends WatchUi.PickerDelegate {
 
     function onAccept(values as Lang.Array) as Lang.Boolean {
         var value = values[0] as Lang.Number;
+        if (_kind == :daily_elevation) {
+            GoalStore.saveDailyElevationGoal(ElevationUnits.toMeters(value));
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
         var meters = DistanceUnits.toMeters(value);
         var goals = GoalStore.getGoals();
 

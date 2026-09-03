@@ -6,6 +6,7 @@ class GoalSetupView {
     static function createMenu() as WatchUi.Menu2 {
         var menu = new WatchUi.Menu2({:title=>"UPDATE GOALS"});
         menu.addItem(new WatchUi.MenuItem("Daily", "Auto or override", :daily, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily Elevation", "Current ride only", :daily_elevation, {}));
         menu.addItem(new WatchUi.MenuItem("Weekly", null, :weekly, {}));
         menu.addItem(new WatchUi.MenuItem("Monthly", null, :monthly, {}));
         menu.addItem(new WatchUi.MenuItem("Yearly", null, :yearly, {}));
@@ -20,10 +21,10 @@ class GoalPicker extends WatchUi.Picker {
         var goal = goalForKind(kind);
         var step = stepForKind(kind);
         var maximum = maximumForKind(kind);
-        _factory = new GoalValueFactory(0, maximum, step);
+        _factory = new GoalValueFactory(0, maximum, step, kind == :daily);
 
         var title = new WatchUi.Text({
-            :text=>kind.toString().toUpper() + " DISTANCE (" + DistanceUnits.label() + ")",
+            :text=>pickerTitle(kind),
             :color=>Graphics.COLOR_WHITE,
             :font=>Graphics.FONT_SMALL,
             :locX=>WatchUi.LAYOUT_HALIGN_CENTER,
@@ -38,6 +39,9 @@ class GoalPicker extends WatchUi.Picker {
     }
 
     private function goalForKind(kind as Lang.Symbol) as Lang.Number {
+        if (kind == :daily_elevation) {
+            return ElevationUnits.fromMeters(GoalStore.getDailyElevationGoal()).toNumber();
+        }
         var goals = GoalStore.getGoals();
         var meters;
         if (kind == :yearly) { meters = goals[0]; }
@@ -55,10 +59,18 @@ class GoalPicker extends WatchUi.Picker {
     }
 
     private function maximumForKind(kind as Lang.Symbol) as Lang.Number {
+        if (kind == :daily_elevation) { return 20000; }
         if (kind == :yearly) { return 50000; }
         if (kind == :monthly) { return 5000; }
         if (kind == :weekly) { return 1000; }
         return 500;
+    }
+
+    private function pickerTitle(kind as Lang.Symbol) as Lang.String {
+        if (kind == :daily_elevation) {
+            return "DAILY ELEVATION (" + ElevationUnits.label() + ")";
+        }
+        return kind.toString().toUpper() + " DISTANCE (" + DistanceUnits.label() + ")";
     }
 }
 
@@ -66,12 +78,15 @@ class GoalValueFactory extends WatchUi.PickerFactory {
     private var _minimum as Lang.Number;
     private var _maximum as Lang.Number;
     private var _step as Lang.Number;
+    private var _zeroIsAuto as Lang.Boolean;
 
-    function initialize(minimum as Lang.Number, maximum as Lang.Number, step as Lang.Number) {
+    function initialize(minimum as Lang.Number, maximum as Lang.Number, step as Lang.Number,
+            zeroIsAuto as Lang.Boolean) {
         PickerFactory.initialize();
         _minimum = minimum;
         _maximum = maximum;
         _step = step;
+        _zeroIsAuto = zeroIsAuto;
     }
 
     function getIndex(value as Lang.Number) as Lang.Number {
@@ -81,7 +96,7 @@ class GoalValueFactory extends WatchUi.PickerFactory {
 
     function getDrawable(index as Lang.Number, isSelected as Lang.Boolean) as WatchUi.Drawable or Null {
         var value = getValue(index) as Lang.Number;
-        var text = value == 0 ? "AUTO" : value.toString();
+        var text = _zeroIsAuto && value == 0 ? "AUTO" : value.toString();
         return new WatchUi.Text({
             :text=>text,
             :color=>Graphics.COLOR_WHITE,

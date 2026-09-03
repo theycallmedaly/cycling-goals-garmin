@@ -23,6 +23,11 @@ class GoalCalculator {
         return remainingAfterProgress(suggested, totals[3], currentRide);
     }
 
+    static function remainingElevationForToday(info as Activity.Info) as Lang.Float {
+        var currentAscent = info.totalAscent == null ? 0.0 : info.totalAscent.toFloat();
+        return remainingAfterProgress(GoalStore.getDailyElevationGoal(), 0.0, currentAscent);
+    }
+
     static function calculateAutomaticGoal(
         yearGoal as Lang.Numeric, yearBeforeToday as Lang.Numeric, yearDays as Lang.Number,
         monthGoal as Lang.Numeric, monthBeforeToday as Lang.Numeric, monthDays as Lang.Number,
