@@ -1,12 +1,13 @@
 using Toybox.Activity;
 using Toybox.Graphics;
+using Toybox.Lang;
 using Toybox.WatchUi;
 
 class CyclingGoalsView extends WatchUi.DataField {
-    private var _remainingMeters as Float = 0.0;
-    private var _configured as Boolean = false;
+    private var _remainingMeters as Lang.Float = 0.0;
+    private var _configured as Lang.Boolean = false;
 
-    function initialize() { DataField.initialize(); setLabel(Rez.Strings.FieldLabel); }
+    function initialize() { DataField.initialize(); }
 
     function compute(info as Activity.Info) {
         _configured = GoalStore.hasGoals();
@@ -15,7 +16,7 @@ class CyclingGoalsView extends WatchUi.DataField {
         return DistanceUnits.fromMeters(_remainingMeters);
     }
 
-    function onUpdate(dc as Dc) as Void {
+    function onUpdate(dc as Graphics.Dc) as Void {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
         var x = dc.getWidth() / 2;

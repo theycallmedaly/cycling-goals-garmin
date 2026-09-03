@@ -45,4 +45,4 @@ The source includes Garmin simulator unit tests for the agreed scenarios:
 - Connect IQ API 5.2.2 or newer
 - Garmin Connect IQ SDK and a developer key for local builds
 
-This is an early MVP implementation. It has not yet been compiled because the Garmin Connect IQ SDK is not installed in the development environment.
+The distance-only prototype compiles successfully with Connect IQ SDK 9.2.0 for all three supported Edge targets. Its four calculation scenarios pass in Garmin's Edge 840 simulator.

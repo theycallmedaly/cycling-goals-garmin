@@ -1,7 +1,7 @@
-using Toybox.Gregorian;
 using Toybox.Graphics;
-using Toybox.Math;
+using Toybox.Lang;
 using Toybox.Time;
+using Toybox.Time.Gregorian;
 using Toybox.WatchUi;
 
 class GoalSetupView {
@@ -16,13 +16,13 @@ class GoalSetupView {
 }
 
 class GoalEditView extends WatchUi.View {
-    private var _kind as Symbol;
-    private var _value as Number;
-    private var _original as Number;
-    private var _width as Number = 240;
-    private var _height as Number = 320;
+    private var _kind as Lang.Symbol;
+    private var _value as Lang.Number;
+    private var _original as Lang.Number;
+    private var _width as Lang.Number = 240;
+    private var _height as Lang.Number = 320;
 
-    function initialize(kind as Symbol) {
+    function initialize(kind as Lang.Symbol) {
         View.initialize();
         _kind = kind;
         _value = loadDisplayValue();
@@ -48,9 +48,9 @@ class GoalEditView extends WatchUi.View {
         dc.drawText((dc.getWidth()*3)/4, dc.getHeight()-45, Graphics.FONT_SMALL, "CANCEL", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function change(direction as Number) {
+    function change(direction as Lang.Number) {
         var step = stepSize();
-        _value = Math.max(0, _value + (direction * step));
+        _value = maximum(0, _value + (direction * step));
         WatchUi.requestUpdate();
     }
 
@@ -67,7 +67,7 @@ class GoalEditView extends WatchUi.View {
 
     function restore() { _value = _original; }
 
-    function handleTap(point as Array<Number>) as Boolean {
+    function handleTap(point as Lang.Array<Lang.Number>) as Lang.Boolean {
         if (point[1] >= 105 && point[1] <= (_height - 70)) {
             change(point[0] < _width/2 ? 1 : -1);
             return true;
@@ -81,7 +81,7 @@ class GoalEditView extends WatchUi.View {
         return false;
     }
 
-    private function loadDisplayValue() as Number {
+    private function loadDisplayValue() as Lang.Number {
         var goals = GoalStore.getGoals();
         var meters;
         if (_kind == :yearly) { meters = goals[0]; }
@@ -91,14 +91,18 @@ class GoalEditView extends WatchUi.View {
         return meters == null ? 0 : DistanceUnits.fromMeters(meters).toNumber();
     }
 
-    private function stepSize() as Number {
+    private function stepSize() as Lang.Number {
         if (_kind == :yearly) { return 100; }
         if (_kind == :monthly) { return 10; }
         if (_kind == :weekly) { return 5; }
         return 1;
     }
 
-    private function todayKey() as Number {
+    private function maximum(a as Lang.Number, b as Lang.Number) as Lang.Number {
+        return a > b ? a : b;
+    }
+
+    private function todayKey() as Lang.Number {
         var date = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         return (date.year * 10000) + (date.month * 100) + date.day;
     }

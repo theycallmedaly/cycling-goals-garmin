@@ -1,11 +1,11 @@
 using Toybox.Activity;
-using Toybox.Gregorian;
-using Toybox.Math;
+using Toybox.Lang;
 using Toybox.Time;
+using Toybox.Time.Gregorian;
 using Toybox.UserProfile;
 
 class GoalCalculator {
-    static function remainingForToday(info as Activity.Info) as Float {
+    static function remainingForToday(info as Activity.Info) as Lang.Float {
         var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var goals = GoalStore.getGoals();
         var totals = historyBeforeAndToday(today);
@@ -24,32 +24,32 @@ class GoalCalculator {
     }
 
     static function calculateAutomaticGoal(
-        yearGoal as Numeric, yearBeforeToday as Numeric, yearDays as Number,
-        monthGoal as Numeric, monthBeforeToday as Numeric, monthDays as Number,
-        weekGoal as Numeric, weekBeforeToday as Numeric, weekDays as Number,
-        isSunday as Boolean, isMonthEndWindow as Boolean) as Float {
+        yearGoal as Lang.Numeric, yearBeforeToday as Lang.Numeric, yearDays as Lang.Number,
+        monthGoal as Lang.Numeric, monthBeforeToday as Lang.Numeric, monthDays as Lang.Number,
+        weekGoal as Lang.Numeric, weekBeforeToday as Lang.Numeric, weekDays as Lang.Number,
+        isSunday as Lang.Boolean, isMonthEndWindow as Lang.Boolean) as Lang.Float {
 
         var yearDaily = remaining(yearGoal, yearBeforeToday) / yearDays;
         var monthDaily = remaining(monthGoal, monthBeforeToday) / monthDays;
         var weekDaily = remaining(weekGoal, weekBeforeToday) / weekDays;
-        var suggested = Math.max(yearDaily, Math.max(monthDaily, weekDaily));
+        var suggested = maximum(yearDaily, maximum(monthDaily, weekDaily));
 
         if (isSunday) {
-            suggested = Math.max(suggested, remaining(weekGoal, weekBeforeToday));
+            suggested = maximum(suggested, remaining(weekGoal, weekBeforeToday));
             if (isMonthEndWindow) {
-                suggested = Math.max(suggested, remaining(monthGoal, monthBeforeToday));
+                suggested = maximum(suggested, remaining(monthGoal, monthBeforeToday));
             }
         }
         return suggested;
     }
 
-    static function remainingAfterProgress(target as Numeric, completedToday as Numeric,
-            currentRide as Numeric) as Float {
-        return Math.max(0.0, target.toFloat() - completedToday.toFloat() - currentRide.toFloat());
+    static function remainingAfterProgress(target as Lang.Numeric, completedToday as Lang.Numeric,
+            currentRide as Lang.Numeric) as Lang.Float {
+        return maximum(0.0, target.toFloat() - completedToday.toFloat() - currentRide.toFloat());
     }
 
     // Meters before today for year/month/week, followed by meters completed today.
-    private static function historyBeforeAndToday(today as Gregorian.Info) as Array<Float> {
+    private static function historyBeforeAndToday(today as Gregorian.Info) as Lang.Array<Lang.Float> {
         var totals = [0.0, 0.0, 0.0, 0.0];
         var iterator = UserProfile.getUserActivityHistory();
         var item = iterator.next();
@@ -73,35 +73,38 @@ class GoalCalculator {
         return totals;
     }
 
-    private static function remaining(goal as Numeric, completed as Numeric) as Float {
-        return Math.max(0.0, goal.toFloat() - completed.toFloat());
+    private static function remaining(goal as Lang.Numeric, completed as Lang.Numeric) as Lang.Float {
+        return maximum(0.0, goal.toFloat() - completed.toFloat());
     }
-    private static function dateKey(date as Gregorian.Info) as Number {
+    private static function maximum(a as Lang.Numeric, b as Lang.Numeric) as Lang.Float {
+        return a > b ? a.toFloat() : b.toFloat();
+    }
+    private static function dateKey(date as Gregorian.Info) as Lang.Number {
         return (date.year * 10000) + (date.month * 100) + date.day;
     }
-    private static function sameDate(a as Gregorian.Info, b as Gregorian.Info) as Boolean {
+    private static function sameDate(a as Gregorian.Info, b as Gregorian.Info) as Lang.Boolean {
         return a.year == b.year && a.month == b.month && a.day == b.day;
     }
-    private static function daysBetween(a as Gregorian.Info, b as Gregorian.Info) as Number {
+    private static function daysBetween(a as Gregorian.Info, b as Gregorian.Info) as Lang.Number {
         var am = Gregorian.moment({:year=>a.year, :month=>a.month, :day=>a.day});
         var bm = Gregorian.moment({:year=>b.year, :month=>b.month, :day=>b.day});
         return ((bm.value() - am.value()) / 86400).toNumber();
     }
-    private static function daysSinceMonday(today as Gregorian.Info) as Number {
+    private static function daysSinceMonday(today as Gregorian.Info) as Lang.Number {
         return today.day_of_week == 1 ? 6 : today.day_of_week - 2;
     }
-    private static function daysRemainingInWeek(today as Gregorian.Info) as Number {
+    private static function daysRemainingInWeek(today as Gregorian.Info) as Lang.Number {
         return today.day_of_week == 1 ? 1 : 9 - today.day_of_week;
     }
-    private static function daysRemainingInMonth(today as Gregorian.Info) as Number {
+    private static function daysRemainingInMonth(today as Gregorian.Info) as Lang.Number {
         return daysInMonth(today.year, today.month) - today.day + 1;
     }
-    private static function daysRemainingInYear(today as Gregorian.Info) as Number {
+    private static function daysRemainingInYear(today as Gregorian.Info) as Lang.Number {
         var total = 0;
         for (var month = today.month; month <= 12; month += 1) { total += daysInMonth(today.year, month); }
         return total - today.day + 1;
     }
-    private static function daysInMonth(year as Number, month as Number) as Number {
+    private static function daysInMonth(year as Lang.Number, month as Lang.Number) as Lang.Number {
         if (month == 2) {
             var leap = (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
             return leap ? 29 : 28;
