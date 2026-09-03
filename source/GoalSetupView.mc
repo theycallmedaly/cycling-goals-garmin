@@ -81,7 +81,7 @@ class GoalValueFactory extends WatchUi.PickerFactory {
 
     function getDrawable(index as Lang.Number, isSelected as Lang.Boolean) as WatchUi.Drawable or Null {
         var value = getValue(index) as Lang.Number;
-        var text = value == 0 ? "AUTO" : value.format("%,d");
+        var text = value == 0 ? "AUTO" : value.format("%d");
         return new WatchUi.Text({
             :text=>text,
             :color=>Graphics.COLOR_WHITE,
