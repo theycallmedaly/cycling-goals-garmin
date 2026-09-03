@@ -1,7 +1,5 @@
 using Toybox.Graphics;
 using Toybox.Lang;
-using Toybox.Time;
-using Toybox.Time.Gregorian;
 using Toybox.WatchUi;
 
 class GoalSetupView {
@@ -15,111 +13,89 @@ class GoalSetupView {
     }
 }
 
-class GoalEditView extends WatchUi.View {
-    private var _kind as Lang.Symbol;
-    private var _value as Lang.Number;
-    private var _original as Lang.Number;
-    private var _width as Lang.Number = 240;
-    private var _height as Lang.Number = 320;
+class GoalPicker extends WatchUi.Picker {
+    private var _factory as GoalValueFactory;
 
     function initialize(kind as Lang.Symbol) {
-        View.initialize();
-        _kind = kind;
-        _value = loadDisplayValue();
-        _original = _value;
+        var goal = goalForKind(kind);
+        var step = stepForKind(kind);
+        var maximum = maximumForKind(kind);
+        _factory = new GoalValueFactory(0, maximum, step);
+
+        var title = new WatchUi.Text({
+            :text=>kind.toString().toUpper() + " DISTANCE (" + DistanceUnits.label() + ")",
+            :color=>Graphics.COLOR_WHITE,
+            :font=>Graphics.FONT_SMALL,
+            :locX=>WatchUi.LAYOUT_HALIGN_CENTER,
+            :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM
+        });
+
+        Picker.initialize({
+            :title=>title,
+            :pattern=>[_factory],
+            :defaults=>[_factory.getIndex(goal)]
+        });
     }
 
-    function onUpdate(dc) {
-        _width = dc.getWidth();
-        _height = dc.getHeight();
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.clear();
-        var x = dc.getWidth() / 2;
-        var title = _kind.toString().toUpper() + " DISTANCE";
-        dc.drawText(x, 18, Graphics.FONT_SMALL, title, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x, 70, Graphics.FONT_LARGE,
-            (_kind == :daily && _value == 0) ? "AUTO" : _value.format("%d") + " " + DistanceUnits.label(),
-            Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x - 55, 150, Graphics.FONT_LARGE, "▲", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x + 55, 150, Graphics.FONT_LARGE, "▼", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawRectangle(12, dc.getHeight()-55, (dc.getWidth()/2)-18, 42);
-        dc.drawRectangle((dc.getWidth()/2)+6, dc.getHeight()-55, (dc.getWidth()/2)-18, 42);
-        dc.drawText(dc.getWidth()/4, dc.getHeight()-45, Graphics.FONT_SMALL, "SAVE", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText((dc.getWidth()*3)/4, dc.getHeight()-45, Graphics.FONT_SMALL, "CANCEL", Graphics.TEXT_JUSTIFY_CENTER);
-    }
-
-    function change(direction as Lang.Number) {
-        changeBy(direction, 1);
-    }
-
-    function changeFast(direction as Lang.Number) {
-        changeBy(direction, 10);
-    }
-
-    private function changeBy(direction as Lang.Number, multiplier as Lang.Number) {
-        var step = stepSize() * multiplier;
-        _value = maximum(0, _value + (direction * step));
-        WatchUi.requestUpdate();
-    }
-
-    function save() {
-        var goals = GoalStore.getGoals();
-        if (_kind == :yearly) { goals[0] = DistanceUnits.toMeters(_value); }
-        else if (_kind == :monthly) { goals[1] = DistanceUnits.toMeters(_value); }
-        else if (_kind == :weekly) { goals[2] = DistanceUnits.toMeters(_value); }
-        else {
-            GoalStore.saveDailyOverride(todayKey(), _value == 0 ? null : DistanceUnits.toMeters(_value));
-        }
-        if (_kind != :daily) { GoalStore.saveGoals(goals); }
-    }
-
-    function restore() { _value = _original; }
-
-    function handleTap(point as Lang.Array<Lang.Number>) as Lang.Boolean {
-        if (point[1] >= 105 && point[1] <= (_height - 70)) {
-            change(point[0] < _width/2 ? 1 : -1);
-            return true;
-        }
-        if (point[1] >= (_height - 65)) {
-            if (point[0] < _width/2) { save(); }
-            else { restore(); }
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        return false;
-    }
-
-    function handleHold(point as Lang.Array<Lang.Number>) as Lang.Boolean {
-        if (point[1] >= 105 && point[1] <= (_height - 70)) {
-            changeFast(point[0] < _width/2 ? 1 : -1);
-            return true;
-        }
-        return false;
-    }
-
-    private function loadDisplayValue() as Lang.Number {
+    private function goalForKind(kind as Lang.Symbol) as Lang.Number {
         var goals = GoalStore.getGoals();
         var meters;
-        if (_kind == :yearly) { meters = goals[0]; }
-        else if (_kind == :monthly) { meters = goals[1]; }
-        else if (_kind == :weekly) { meters = goals[2]; }
-        else { meters = GoalStore.getDailyOverride(todayKey()); }
+        if (kind == :yearly) { meters = goals[0]; }
+        else if (kind == :monthly) { meters = goals[1]; }
+        else if (kind == :weekly) { meters = goals[2]; }
+        else { meters = GoalStore.getDailyOverride(GoalDate.todayKey()); }
         return meters == null ? 0 : DistanceUnits.fromMeters(meters).toNumber();
     }
 
-    private function stepSize() as Lang.Number {
-        if (_kind == :yearly) { return 100; }
-        if (_kind == :monthly) { return 10; }
-        if (_kind == :weekly) { return 5; }
+    private function stepForKind(kind as Lang.Symbol) as Lang.Number {
+        if (kind == :yearly) { return 100; }
+        if (kind == :monthly) { return 10; }
+        if (kind == :weekly) { return 5; }
         return 1;
     }
 
-    private function maximum(a as Lang.Number, b as Lang.Number) as Lang.Number {
-        return a > b ? a : b;
+    private function maximumForKind(kind as Lang.Symbol) as Lang.Number {
+        if (kind == :yearly) { return 50000; }
+        if (kind == :monthly) { return 5000; }
+        if (kind == :weekly) { return 1000; }
+        return 500;
+    }
+}
+
+class GoalValueFactory extends WatchUi.PickerFactory {
+    private var _minimum as Lang.Number;
+    private var _maximum as Lang.Number;
+    private var _step as Lang.Number;
+
+    function initialize(minimum as Lang.Number, maximum as Lang.Number, step as Lang.Number) {
+        PickerFactory.initialize();
+        _minimum = minimum;
+        _maximum = maximum;
+        _step = step;
     }
 
-    private function todayKey() as Lang.Number {
-        var date = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        return (date.year * 10000) + (date.month * 100) + date.day;
+    function getIndex(value as Lang.Number) as Lang.Number {
+        var bounded = value > _maximum ? _maximum : value;
+        return ((bounded - _minimum) / _step).toNumber();
+    }
+
+    function getDrawable(index as Lang.Number, isSelected as Lang.Boolean) as WatchUi.Drawable or Null {
+        var value = getValue(index) as Lang.Number;
+        var text = value == 0 ? "AUTO" : value.format("%,d");
+        return new WatchUi.Text({
+            :text=>text,
+            :color=>Graphics.COLOR_WHITE,
+            :font=>Graphics.FONT_LARGE,
+            :locX=>WatchUi.LAYOUT_HALIGN_CENTER,
+            :locY=>WatchUi.LAYOUT_VALIGN_CENTER
+        });
+    }
+
+    function getValue(index as Lang.Number) as Lang.Object or Null {
+        return _minimum + (index * _step);
+    }
+
+    function getSize() as Lang.Number {
+        return ((_maximum - _minimum) / _step).toNumber() + 1;
     }
 }

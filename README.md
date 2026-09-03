@@ -26,7 +26,7 @@ MILES or KM
 
 If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for Daily, Weekly, Monthly, and Yearly. Daily is automatic unless the rider creates a same-day override. Weekly, monthly, and yearly values persist.
 
-First-time defaults are 100 miles weekly, 500 miles monthly, and 7,000 miles yearly. They are converted for display when the device uses metric units. Tapping an arrow changes one normal step; pressing and holding applies a 10× step for faster adjustment.
+First-time defaults are 100 miles weekly, 500 miles monthly, and 7,000 miles yearly. They are converted for display when the device uses metric units. Goal editing uses Garmin's native picker so values redraw reliably and inherit the device's standard touch behavior.
 
 All distances are stored internally in meters. Display and editing follow the unit system selected in Garmin's device settings.
 
