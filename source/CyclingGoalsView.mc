@@ -37,8 +37,8 @@ class CyclingGoalsView extends WatchUi.DataField {
                 Application.loadResource(Rez.Strings.OpenSettings), Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
-        var distanceBackground = progressColor(_distanceTargetMeters, _remainingMeters, true);
-        var elevationBackground = progressColor(_elevationTargetMeters, _remainingElevationMeters, false);
+        var distanceBackground = progressColor(_distanceTargetMeters, _remainingMeters);
+        var elevationBackground = progressColor(_elevationTargetMeters, _remainingElevationMeters);
         dc.setColor(distanceBackground, distanceBackground);
         dc.fillRectangle(0, 0, dc.getWidth(), y);
         dc.setColor(elevationBackground, elevationBackground);
@@ -66,14 +66,9 @@ class CyclingGoalsView extends WatchUi.DataField {
         dc.drawText(x, lowerCenter + 33, Graphics.FONT_SMALL, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function progressColor(target as Lang.Numeric, remaining as Lang.Numeric,
-            useBrightRed as Lang.Boolean) as Graphics.ColorType {
-        if (target <= 0 || remaining <= 0) {
-            return Graphics.createColor(255, 71, 122, 72);
-        }
+    private function progressColor(target as Lang.Numeric, remaining as Lang.Numeric) as Graphics.ColorType {
+        if (target <= 0 || remaining <= 0) { return Graphics.COLOR_GREEN; }
         var completedFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        return completedFraction < 0.75
-            ? (useBrightRed ? Graphics.COLOR_RED : Graphics.createColor(255, 155, 58, 50))
-            : Graphics.COLOR_BLACK;
+        return completedFraction < 0.75 ? Graphics.COLOR_RED : Graphics.COLOR_BLACK;
     }
 }
