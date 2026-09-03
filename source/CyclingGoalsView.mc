@@ -40,13 +40,13 @@ class CyclingGoalsView extends WatchUi.DataField {
         dc.drawText(x, upperCenter - 8, Graphics.FONT_NUMBER_HOT,
             DistanceUnits.fromMeters(_remainingMeters).format("%.2f"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(x, upperCenter + 33, Graphics.FONT_XTINY, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, upperCenter + 33, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.drawLine(24, dividerY, dc.getWidth() - 24, dividerY);
 
         dc.drawText(x, lowerCenter - 8, Graphics.FONT_NUMBER_HOT,
             ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(x, lowerCenter + 33, Graphics.FONT_XTINY, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, lowerCenter + 33, Graphics.FONT_SMALL, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
