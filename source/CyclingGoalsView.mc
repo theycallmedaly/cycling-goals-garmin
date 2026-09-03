@@ -1,4 +1,5 @@
 using Toybox.Activity;
+using Toybox.Application;
 using Toybox.Graphics;
 using Toybox.Lang;
 using Toybox.WatchUi;
@@ -22,11 +23,14 @@ class CyclingGoalsView extends WatchUi.DataField {
         var x = dc.getWidth() / 2;
         var y = dc.getHeight() / 2;
         if (!_configured) {
-            dc.drawText(x, y - 18, Graphics.FONT_SMALL, Rez.Strings.NoGoals, Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(x, y + 10, Graphics.FONT_XTINY, Rez.Strings.OpenSettings, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(x, y - 18, Graphics.FONT_SMALL,
+                Application.loadResource(Rez.Strings.NoGoals), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(x, y + 10, Graphics.FONT_XTINY,
+                Application.loadResource(Rez.Strings.OpenSettings), Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
-        dc.drawText(x, 8, Graphics.FONT_XTINY, Rez.Strings.RemainingToday, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, 8, Graphics.FONT_XTINY,
+            Application.loadResource(Rez.Strings.RemainingToday), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(x, y - 10, Graphics.FONT_LARGE, DistanceUnits.fromMeters(_remainingMeters).format("%.1f"), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(x, y + 34, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
     }
