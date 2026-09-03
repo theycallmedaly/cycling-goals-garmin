@@ -16,6 +16,8 @@ The rider can also set a daily elevation goal. It defaults to 1,370 feet and is 
 
 On supported color devices, each half communicates its own progress: red below 75% complete, black from 75% through 99.9%, and green when the goal is met. Distance and elevation change color independently.
 
+The display also estimates the time needed to complete the remaining distance. It uses the ride average until five miles of data are available, then uses a rolling average of the most recent five miles. Paused time is excluded. The estimate appears in a neutral black center section in `00H:00M` format.
+
 ## Current interface
 
 ```text
