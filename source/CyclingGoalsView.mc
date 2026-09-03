@@ -31,7 +31,9 @@ class CyclingGoalsView extends WatchUi.DataField {
         }
         dc.drawText(x, 8, Graphics.FONT_XTINY,
             Application.loadResource(Rez.Strings.RemainingToday), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x, y - 10, Graphics.FONT_LARGE, DistanceUnits.fromMeters(_remainingMeters).format("%.1f"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, y, Graphics.FONT_NUMBER_THAI_HOT,
+            DistanceUnits.fromMeters(_remainingMeters).format("%.2f"),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, y + 34, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
