@@ -3,7 +3,7 @@ using Toybox.Graphics;
 using Toybox.WatchUi;
 
 class CyclingGoalsView extends WatchUi.DataField {
-    private var _remainingMiles as Float = 0.0;
+    private var _remainingMeters as Float = 0.0;
     private var _configured as Boolean = false;
 
     function initialize() { DataField.initialize(); setLabel(Rez.Strings.FieldLabel); }
@@ -11,8 +11,8 @@ class CyclingGoalsView extends WatchUi.DataField {
     function compute(info as Activity.Info) {
         _configured = GoalStore.hasGoals();
         if (!_configured) { return "SET GOALS"; }
-        _remainingMiles = GoalCalculator.remainingForToday(info);
-        return _remainingMiles;
+        _remainingMeters = GoalCalculator.remainingForToday(info);
+        return DistanceUnits.fromMeters(_remainingMeters);
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -26,7 +26,7 @@ class CyclingGoalsView extends WatchUi.DataField {
             return;
         }
         dc.drawText(x, 8, Graphics.FONT_XTINY, Rez.Strings.RemainingToday, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x, y - 10, Graphics.FONT_LARGE, _remainingMiles.format("%.1f"), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x, y + 34, Graphics.FONT_SMALL, Rez.Strings.Miles, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, y - 10, Graphics.FONT_LARGE, DistanceUnits.fromMeters(_remainingMeters).format("%.1f"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, y + 34, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
     }
 }

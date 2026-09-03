@@ -4,7 +4,7 @@
         name="@Strings.AppName" entry="CyclingGoalsApp"
         launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.2.2">
         <iq:products>
-            <iq:product id="edge540"/><iq:product id="edge840"/>
+            <iq:product id="edge840"/>
             <iq:product id="edge1040"/><iq:product id="edge1050"/>
         </iq:products>
         <iq:permissions><iq:uses-permission id="UserProfile"/></iq:permissions>
@@ -12,4 +12,3 @@
         <iq:barrels/>
     </iq:application>
 </iq:manifest>
-

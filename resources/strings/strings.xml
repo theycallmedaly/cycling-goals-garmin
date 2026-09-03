@@ -2,8 +2,6 @@
     <string id="AppName">Cycling Goals</string>
     <string id="FieldLabel">Today</string>
     <string id="RemainingToday">REMAINING FOR TODAY</string>
-    <string id="Miles">MILES</string>
     <string id="NoGoals">NO GOALS SET</string>
     <string id="OpenSettings">OPEN FIELD SETTINGS</string>
 </strings>
-

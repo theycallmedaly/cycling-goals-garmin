@@ -1,17 +1,18 @@
 using Toybox.WatchUi;
 
-class GoalSetupDelegate extends WatchUi.InputDelegate {
-    private var _view as GoalSetupView;
-    function initialize(view as GoalSetupView) { InputDelegate.initialize(); _view = view; }
-    function onKey(event as KeyEvent) as Boolean {
-        var key = event.getKey();
-        if (key == WatchUi.KEY_UP) { _view.change(1); return true; }
-        if (key == WatchUi.KEY_DOWN) { _view.change(-1); return true; }
-        if (key == WatchUi.KEY_ENTER) {
-            if (_view.advance()) { WatchUi.popView(WatchUi.SLIDE_DOWN); }
-            return true;
-        }
-        return false;
+class GoalSetupDelegate extends WatchUi.Menu2InputDelegate {
+    function initialize() { Menu2InputDelegate.initialize(); }
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        var view = new GoalEditView(item.getId());
+        WatchUi.pushView(view, new GoalEditDelegate(view), WatchUi.SLIDE_UP);
     }
 }
 
+class GoalEditDelegate extends WatchUi.BehaviorDelegate {
+    private var _view as GoalEditView;
+    function initialize(view as GoalEditView) { BehaviorDelegate.initialize(); _view = view; }
+
+    function onTap(event as WatchUi.ClickEvent) as Boolean {
+        return _view.handleTap(event.getCoordinates());
+    }
+}
