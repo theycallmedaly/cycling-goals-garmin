@@ -149,6 +149,26 @@ class GoalCalculatorTests {
         return closeTo(result / TEST_MILE, 13.0);
     }
 
+    (:test)
+    static function halfwayTriggersOnCrossing(logger) as Lang.Boolean {
+        return GoalCalculator.crossedHalfway(0.49, 500, 1000);
+    }
+
+    (:test)
+    static function halfwayDoesNotTriggerOnFirstSample(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedHalfway(-1.0, 400, 1000);
+    }
+
+    (:test)
+    static function halfwayDoesNotRepeatAfterCrossing(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedHalfway(0.5, 300, 1000);
+    }
+
+    (:test)
+    static function halfwayIgnoresDisabledGoal(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedHalfway(0.49, 0, 0);
+    }
+
     private static function closeTo(actual as Lang.Numeric, expected as Lang.Numeric) as Lang.Boolean {
         var difference = actual.toFloat() - expected.toFloat();
         if (difference < 0) { difference = -difference; }

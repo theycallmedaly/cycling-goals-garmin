@@ -65,6 +65,13 @@ class GoalCalculator {
         return maximum(0.0, target.toFloat() - completedToday.toFloat() - currentRide.toFloat());
     }
 
+    static function crossedHalfway(previousFraction as Lang.Numeric, remaining as Lang.Numeric,
+            target as Lang.Numeric) as Lang.Boolean {
+        if (target <= 0 || previousFraction < 0 || previousFraction >= 0.5) { return false; }
+        var currentFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
+        return currentFraction >= 0.5;
+    }
+
     static function bonusTarget(automaticTarget as Lang.Numeric, configuredTarget as Lang.Numeric or Null) as Lang.Float {
         return configuredTarget == null ? automaticTarget.toFloat() * 0.5 : configuredTarget.toFloat();
     }

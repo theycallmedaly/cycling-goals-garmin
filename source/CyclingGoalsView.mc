@@ -27,6 +27,8 @@ class CyclingGoalsView extends WatchUi.DataField {
     private var _lastTimerTime as Lang.Number = -1;
     private var _lastDistanceFraction as Lang.Float = -1.0;
     private var _distanceHalfwayAlerted as Lang.Boolean = false;
+    private var _lastElevationFraction as Lang.Float = -1.0;
+    private var _elevationHalfwayAlerted as Lang.Boolean = false;
     private var _screenWidth as Lang.Number = 246;
     private var _configured as Lang.Boolean = false;
 
@@ -65,6 +67,7 @@ class CyclingGoalsView extends WatchUi.DataField {
             }
         }
         var elevationState = GoalCalculator.elevationStateForToday(info);
+        updateElevationMilestone(elevationState[0], elevationState[1]);
         _remainingElevationMeters = elevationState[0];
         _elevationTargetMeters = elevationState[1];
         if (info.elapsedDistance != null && info.timerTime != null) {
@@ -228,6 +231,8 @@ class CyclingGoalsView extends WatchUi.DataField {
             _sawActiveTimer = false;
             _lastDistanceFraction = -1.0;
             _distanceHalfwayAlerted = false;
+            _lastElevationFraction = -1.0;
+            _elevationHalfwayAlerted = false;
         }
         _lastRideDistance = distance;
         _lastTimerTime = timer;
@@ -242,20 +247,39 @@ class CyclingGoalsView extends WatchUi.DataField {
     private function updateDistanceMilestone(remaining as Lang.Numeric, target as Lang.Numeric) as Void {
         if (target <= 0) { return; }
         var fraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        if (_lastDistanceFraction >= 0 && _lastDistanceFraction < 0.5 && fraction >= 0.5
+        if (GoalCalculator.crossedHalfway(_lastDistanceFraction, remaining, target)
                 && !_distanceHalfwayAlerted && GoalStore.alertEnabled(:halfway)) {
             _distanceHalfwayAlerted = true;
             if (WatchUi.DataField has :showAlert) {
                 WatchUi.DataField.showAlert(new MilestoneAlertView(
                     "HALFWAY THERE",
                     DistanceUnits.fromMeters(remaining).format("%.1f") + " "
-                        + DistanceUnits.label() + " REMAINING"));
+                        + DistanceUnits.label() + " REMAINING", :distance));
             }
             if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
                 Attention.playTone(Attention.TONE_DISTANCE_ALERT);
             }
         }
         _lastDistanceFraction = fraction;
+    }
+
+    private function updateElevationMilestone(remaining as Lang.Numeric, target as Lang.Numeric) as Void {
+        if (target <= 0) { return; }
+        var fraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
+        if (GoalCalculator.crossedHalfway(_lastElevationFraction, remaining, target)
+                && !_elevationHalfwayAlerted && GoalStore.alertEnabled(:halfway)) {
+            _elevationHalfwayAlerted = true;
+            if (WatchUi.DataField has :showAlert) {
+                WatchUi.DataField.showAlert(new MilestoneAlertView(
+                    "HALFWAY THERE",
+                    ElevationUnits.fromMeters(remaining).format("%.0f") + " "
+                        + ElevationUnits.label() + " TO GO", :elevation));
+            }
+            if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
+                Attention.playTone(Attention.TONE_DISTANCE_ALERT);
+            }
+        }
+        _lastElevationFraction = fraction;
     }
 
     private function drawEtaTrend(dc as Graphics.Dc, x as Lang.Number, centerY as Lang.Number) as Void {
