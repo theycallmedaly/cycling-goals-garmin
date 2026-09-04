@@ -244,6 +244,7 @@ class CyclingGoalsView extends WatchUi.DataField {
         var fraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
         if (_lastDistanceFraction >= 0 && _lastDistanceFraction < 0.5 && fraction >= 0.5
                 && !_distanceHalfwayAlerted && GoalStore.alertEnabled(:halfway)) {
+            _distanceHalfwayAlerted = true;
             if (WatchUi.DataField has :showAlert) {
                 WatchUi.DataField.showAlert(new MilestoneAlertView(
                     "HALFWAY THERE",
@@ -253,7 +254,6 @@ class CyclingGoalsView extends WatchUi.DataField {
             if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
                 Attention.playTone(Attention.TONE_DISTANCE_ALERT);
             }
-            _distanceHalfwayAlerted = true;
         }
         _lastDistanceFraction = fraction;
     }

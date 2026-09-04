@@ -13,11 +13,36 @@ class MilestoneAlertView extends WatchUi.DataFieldAlert {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_GREEN);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_DK_GRAY);
         dc.clear();
-        dc.drawText(dc.getWidth() / 2, (dc.getHeight() * 34) / 100,
-            Graphics.FONT_MEDIUM, _title, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(dc.getWidth() / 2, (dc.getHeight() * 55) / 100,
-            Graphics.FONT_SMALL, _detail, Graphics.TEXT_JUSTIFY_CENTER);
+
+        var centerX = dc.getWidth() / 2;
+        var flagTop = 18;
+        var courseY = 68;
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_DK_GRAY);
+        dc.setPenWidth(4);
+        dc.drawLine(centerX, flagTop, centerX, courseY);
+        dc.drawLine(centerX - 42, courseY, centerX + 42, courseY);
+        dc.fillCircle(centerX - 42, courseY, 4);
+        dc.fillCircle(centerX, courseY, 7);
+        dc.fillCircle(centerX + 42, courseY, 4);
+        dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_DK_GRAY);
+        dc.fillPolygon([
+            [centerX + 3, flagTop + 3],
+            [centerX + 34, flagTop + 15],
+            [centerX + 3, flagTop + 28]
+        ]);
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_DK_GRAY);
+        dc.drawText(centerX, 96,
+            Graphics.FONT_SYSTEM_LARGE, _title, Graphics.TEXT_JUSTIFY_CENTER);
+
+        var separator = _detail.find(" ");
+        var value = separator == null ? _detail : _detail.substring(0, separator);
+        var label = separator == null ? "" : _detail.substring(separator + 1, _detail.length());
+        dc.drawText(centerX, 132,
+            Graphics.FONT_SYSTEM_NUMBER_THAI_HOT, value, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 214,
+            Graphics.FONT_SYSTEM_LARGE, label, Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
