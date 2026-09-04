@@ -7,9 +7,11 @@ class GoalSetupView {
         var menu = new WatchUi.Menu2({:title=>"UPDATE GOALS"});
         menu.addItem(new WatchUi.MenuItem("Daily", "Auto or override", :daily, {}));
         menu.addItem(new WatchUi.MenuItem("Daily Elevation", "Current ride only", :daily_elevation, {}));
+        menu.addItem(new WatchUi.MenuItem("Bonus Distance", "Auto: 50% of daily", :bonus, {}));
         menu.addItem(new WatchUi.MenuItem("Weekly", null, :weekly, {}));
         menu.addItem(new WatchUi.MenuItem("Monthly", null, :monthly, {}));
         menu.addItem(new WatchUi.MenuItem("Yearly", null, :yearly, {}));
+        menu.addItem(new WatchUi.MenuItem("Alerts", "Milestones and sound", :alerts, {}));
         return menu;
     }
 }
@@ -21,7 +23,7 @@ class GoalPicker extends WatchUi.Picker {
         var goal = goalForKind(kind);
         var step = stepForKind(kind);
         var maximum = maximumForKind(kind);
-        _factory = new GoalValueFactory(0, maximum, step, kind == :daily);
+        _factory = new GoalValueFactory(0, maximum, step, kind == :daily || kind == :bonus);
 
         var title = new WatchUi.Text({
             :text=>pickerTitle(kind),
@@ -41,6 +43,10 @@ class GoalPicker extends WatchUi.Picker {
     private function goalForKind(kind as Lang.Symbol) as Lang.Number {
         if (kind == :daily_elevation) {
             return ElevationUnits.fromMeters(GoalStore.getDailyElevationGoal()).toNumber();
+        }
+        if (kind == :bonus) {
+            var bonus = GoalStore.getBonusDistanceGoal();
+            return bonus == null ? 0 : DistanceUnits.fromMeters(bonus).toNumber();
         }
         var goals = GoalStore.getGoals();
         var meters;
@@ -70,7 +76,8 @@ class GoalPicker extends WatchUi.Picker {
         if (kind == :daily_elevation) {
             return "DAILY ELEVATION (" + ElevationUnits.label() + ")";
         }
-        return kind.toString().toUpper() + " DISTANCE (" + DistanceUnits.label() + ")";
+        return (kind == :bonus ? "BONUS" : kind.toString().toUpper())
+            + " DISTANCE (" + DistanceUnits.label() + ")";
     }
 }
 

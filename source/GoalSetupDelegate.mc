@@ -8,6 +8,10 @@ class GoalSetupDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var kind = item.getId() as Lang.Symbol;
+        if (kind == :alerts) {
+            WatchUi.pushView(AlertSettingsView.createMenu(), new AlertSettingsDelegate(), WatchUi.SLIDE_UP);
+            return;
+        }
         WatchUi.pushView(new GoalPicker(kind), new GoalPickerDelegate(kind), WatchUi.SLIDE_UP);
     }
 }
@@ -28,6 +32,11 @@ class GoalPickerDelegate extends WatchUi.PickerDelegate {
             return true;
         }
         var meters = DistanceUnits.toMeters(value);
+        if (_kind == :bonus) {
+            GoalStore.saveBonusDistanceGoal(value == 0 ? null : meters);
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
         var goals = GoalStore.getGoals();
 
         if (_kind == :yearly) { goals[0] = meters; }

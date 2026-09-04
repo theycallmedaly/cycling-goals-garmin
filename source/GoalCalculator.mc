@@ -9,23 +9,24 @@ class GoalCalculator {
         return distanceStateForToday(info)[0];
     }
 
-    // Remaining distance followed by today's distance target, both in meters.
+    // Required remaining, required target, completed today, and original automatic target (meters).
     static function distanceStateForToday(info as Activity.Info) as Lang.Array<Lang.Float> {
         var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var goals = GoalStore.getGoals();
         var totals = historyBeforeAndToday(today);
         var override = GoalStore.getDailyOverride(dateKey(today));
 
-        var suggested = override == null
-            ? calculateAutomaticGoal(
+        var automatic = calculateAutomaticGoal(
                 goals[0], totals[0], daysRemainingInYear(today),
                 goals[1], totals[1], daysRemainingInMonth(today),
                 goals[2], totals[2], daysRemainingInWeek(today),
-                today.day_of_week == 1, daysRemainingInMonth(today) <= 5)
-            : override.toFloat();
+                today.day_of_week == 1, daysRemainingInMonth(today) <= 5);
+        var suggested = override == null ? automatic : override.toFloat();
 
         var currentRide = info.elapsedDistance == null ? 0.0 : info.elapsedDistance.toFloat();
-        return [remainingAfterProgress(suggested, totals[3], currentRide), suggested];
+        var completedToday = totals[3] + currentRide;
+        return [remainingAfterProgress(suggested, totals[3], currentRide), suggested,
+            completedToday, automatic];
     }
 
     static function remainingElevationForToday(info as Activity.Info) as Lang.Float {
@@ -62,6 +63,25 @@ class GoalCalculator {
     static function remainingAfterProgress(target as Lang.Numeric, completedToday as Lang.Numeric,
             currentRide as Lang.Numeric) as Lang.Float {
         return maximum(0.0, target.toFloat() - completedToday.toFloat() - currentRide.toFloat());
+    }
+
+    static function bonusTarget(automaticTarget as Lang.Numeric, configuredTarget as Lang.Numeric or Null) as Lang.Float {
+        return configuredTarget == null ? automaticTarget.toFloat() * 0.5 : configuredTarget.toFloat();
+    }
+
+    static function bonusRemaining(requiredTarget as Lang.Numeric, completedToday as Lang.Numeric,
+            bonusTargetMeters as Lang.Numeric) as Lang.Float {
+        return maximum(0.0, bonusTargetMeters.toFloat() - bonusProgress(requiredTarget, completedToday));
+    }
+
+    static function bonusProgress(requiredTarget as Lang.Numeric, completedToday as Lang.Numeric) as Lang.Float {
+        return maximum(0.0, completedToday.toFloat() - requiredTarget.toFloat());
+    }
+
+    static function bonusRemainingForRounds(requiredTarget as Lang.Numeric, completedToday as Lang.Numeric,
+            bonusBlock as Lang.Numeric, rounds as Lang.Number) as Lang.Float {
+        return maximum(0.0,
+            (bonusBlock.toFloat() * rounds) - bonusProgress(requiredTarget, completedToday));
     }
 
     // Meters before today for year/month/week, followed by meters completed today.

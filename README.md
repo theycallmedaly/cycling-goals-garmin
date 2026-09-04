@@ -18,6 +18,8 @@ On supported color devices, the distance and elevation sections remain black so 
 
 The display also estimates the time needed to complete the remaining distance. It uses the ride average until five miles of data are available, then uses a rolling average of the most recent five miles. Paused time is excluded. The estimate appears in `00H:00M` format. After a 15-minute measuring period, the center section compares projected completion time with 15 minutes earlier: green and `AHEAD`, black and `ON PACE`, or red and `BEHIND`.
 
+After the required daily distance is complete, the field offers an optional bonus goal. The default bonus is half of the day's original automatic distance target; the rider can instead configure a fixed Bonus Distance in Settings. Accepting the prompt replaces the required distance with a bonus countdown, credits any overshoot toward it, and uses a green-only distance section without status rails. Each time a bonus block is completed, the rider may accept another block of the same size. The loop ends when the rider selects No or stops the ride.
+
 ## Current interface
 
 ```text
@@ -34,7 +36,7 @@ MILES or KM
 FT or M
 ```
 
-If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for Daily Distance, Daily Elevation, Weekly, Monthly, and Yearly. Daily distance is automatic unless the rider creates a same-day override. The daily elevation goal and weekly, monthly, and yearly distance goals persist.
+If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for Daily Distance, Daily Elevation, Bonus Distance, Weekly, Monthly, and Yearly. Daily distance is automatic unless the rider creates a same-day override. Bonus Distance defaults to `AUTO` (50% of the original automatic daily target) but may be set to a fixed distance. The daily elevation goal and weekly, monthly, and yearly distance goals persist.
 
 First-time defaults are 100 miles weekly, 500 miles monthly, and 7,000 miles yearly. They are converted for display when the device uses metric units. Goal editing uses Garmin's native picker so values redraw reliably and inherit the device's standard touch behavior.
 

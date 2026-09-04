@@ -119,6 +119,36 @@ class GoalCalculatorTests {
         return result[0] == :behind && result[1] == 10;
     }
 
+    (:test)
+    static function automaticBonusIsHalfOfAutomaticDailyGoal(logger) as Lang.Boolean {
+        return closeTo(GoalCalculator.bonusTarget(30 * TEST_MILE, null) / TEST_MILE, 15.0);
+    }
+
+    (:test)
+    static function configuredBonusOverridesAutomaticBonus(logger) as Lang.Boolean {
+        return closeTo(GoalCalculator.bonusTarget(30 * TEST_MILE, 20 * TEST_MILE) / TEST_MILE, 20.0);
+    }
+
+    (:test)
+    static function requiredGoalOvershootCountsTowardBonus(logger) as Lang.Boolean {
+        var result = GoalCalculator.bonusRemaining(30 * TEST_MILE, 36.5 * TEST_MILE, 15 * TEST_MILE);
+        return closeTo(result / TEST_MILE, 8.5);
+    }
+
+    (:test)
+    static function secondBonusExtendsFirstBonus(logger) as Lang.Boolean {
+        var result = GoalCalculator.bonusRemainingForRounds(
+            30 * TEST_MILE, 45 * TEST_MILE, 15 * TEST_MILE, 2);
+        return closeTo(result / TEST_MILE, 15.0);
+    }
+
+    (:test)
+    static function overshootCarriesIntoSecondBonus(logger) as Lang.Boolean {
+        var result = GoalCalculator.bonusRemainingForRounds(
+            30 * TEST_MILE, 47 * TEST_MILE, 15 * TEST_MILE, 2);
+        return closeTo(result / TEST_MILE, 13.0);
+    }
+
     private static function closeTo(actual as Lang.Numeric, expected as Lang.Numeric) as Lang.Boolean {
         var difference = actual.toFloat() - expected.toFloat();
         if (difference < 0) { difference = -difference; }
