@@ -14,9 +14,9 @@ Completed rides earlier today and the current ride are subtracted from today's t
 
 The rider can also set a daily elevation goal. It defaults to 1,370 feet and is reduced only by the current ride's live total ascent. Historical climbing is intentionally excluded because Connect IQ's activity-history records expose distance but not elevation gain.
 
-On supported color devices, each half communicates its own progress: red below 75% complete, black from 75% through 99.9%, and green when the goal is met. Distance and elevation change color independently.
+On supported color devices, the distance and elevation sections remain black so Garmin's native alerts stay visible. Slim side rails communicate each goal's status: red below 75% complete, white from 75% through 99.9%, and green when the goal is met. Distance and elevation change independently.
 
-The display also estimates the time needed to complete the remaining distance. It uses the ride average until five miles of data are available, then uses a rolling average of the most recent five miles. Paused time is excluded. The estimate appears in a neutral black center section in `00H:00M` format.
+The display also estimates the time needed to complete the remaining distance. It uses the ride average until five miles of data are available, then uses a rolling average of the most recent five miles. Paused time is excluded. The estimate appears in `00H:00M` format. After a 15-minute measuring period, the center section compares projected completion time with 15 minutes earlier: green and `AHEAD`, black and `ON PACE`, or red and `BEHIND`.
 
 ## Current interface
 

@@ -88,6 +88,37 @@ class GoalCalculatorTests {
         return closeTo(result, expected);
     }
 
+    (:test)
+    static function etaTrendMeasuresForFifteenMinutes(logger) as Lang.Boolean {
+        var estimator = new EtaTrendEstimator();
+        var result = estimator.update(0, 3600, 1.0);
+        return result[0] == :measuring;
+    }
+
+    (:test)
+    static function etaTrendRecognizesOnPace(logger) as Lang.Boolean {
+        var estimator = new EtaTrendEstimator();
+        estimator.update(0, 3600, 1.0);
+        var result = estimator.update(900000, 2700, 1.0);
+        return result[0] == :on_pace;
+    }
+
+    (:test)
+    static function etaTrendRecognizesTenMinutesAhead(logger) as Lang.Boolean {
+        var estimator = new EtaTrendEstimator();
+        estimator.update(0, 3600, 1.0);
+        var result = estimator.update(900000, 2100, 1.0);
+        return result[0] == :ahead && result[1] == 10;
+    }
+
+    (:test)
+    static function etaTrendRecognizesTenMinutesBehind(logger) as Lang.Boolean {
+        var estimator = new EtaTrendEstimator();
+        estimator.update(0, 3600, 1.0);
+        var result = estimator.update(900000, 3300, 1.0);
+        return result[0] == :behind && result[1] == 10;
+    }
+
     private static function closeTo(actual as Lang.Numeric, expected as Lang.Numeric) as Lang.Boolean {
         var difference = actual.toFloat() - expected.toFloat();
         if (difference < 0) { difference = -difference; }
