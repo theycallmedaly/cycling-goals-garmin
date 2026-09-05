@@ -8,6 +8,7 @@ const DAILY_OVERRIDE_KEY = "dailyOverrideMeters";
 const DAILY_OVERRIDE_DATE_KEY = "dailyOverrideDate";
 const DAILY_ELEVATION_KEY = "dailyElevationMeters";
 const BONUS_DISTANCE_KEY = "bonusDistanceMeters";
+const BONUS_ELEVATION_KEY = "bonusElevationMeters";
 const ALL_ALERTS_KEY = "allAlerts";
 const HALFWAY_ALERTS_KEY = "halfwayAlerts";
 const PACE_ALERTS_KEY = "paceAlerts";
@@ -73,6 +74,24 @@ class GoalStore {
             Application.Storage.deleteValue(BONUS_DISTANCE_KEY);
         } else {
             Application.Storage.setValue(BONUS_DISTANCE_KEY, meters);
+        }
+    }
+
+    // Null means AUTO: repeat one full daily elevation goal.
+    static function getBonusElevationGoal() as Lang.Numeric or Null {
+        return Application.Storage.getValue(BONUS_ELEVATION_KEY);
+    }
+
+    static function bonusElevationTarget() as Lang.Float {
+        return GoalCalculator.elevationBonusTarget(
+            getDailyElevationGoal(), getBonusElevationGoal());
+    }
+
+    static function saveBonusElevationGoal(meters as Lang.Numeric or Null) as Void {
+        if (meters == null) {
+            Application.Storage.deleteValue(BONUS_ELEVATION_KEY);
+        } else {
+            Application.Storage.setValue(BONUS_ELEVATION_KEY, meters);
         }
     }
 

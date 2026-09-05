@@ -8,11 +8,20 @@ class GoalSetupDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var kind = item.getId() as Lang.Symbol;
-        if (kind == :alerts) {
-            WatchUi.pushView(AlertSettingsView.createMenu(), new AlertSettingsDelegate(), WatchUi.SLIDE_UP);
-            return;
-        }
         WatchUi.pushView(new GoalPicker(kind), new GoalPickerDelegate(kind), WatchUi.SLIDE_UP);
+    }
+}
+
+class SettingsDelegate extends WatchUi.Menu2InputDelegate {
+    function initialize() { Menu2InputDelegate.initialize(); }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        var kind = item.getId() as Lang.Symbol;
+        if (kind == :goals) {
+            WatchUi.pushView(GoalSetupView.createMenu(), new GoalSetupDelegate(), WatchUi.SLIDE_UP);
+        } else if (kind == :alerts) {
+            WatchUi.pushView(AlertSettingsView.createMenu(), new AlertSettingsDelegate(), WatchUi.SLIDE_UP);
+        }
     }
 }
 
@@ -28,6 +37,11 @@ class GoalPickerDelegate extends WatchUi.PickerDelegate {
         var value = values[0] as Lang.Number;
         if (_kind == :daily_elevation) {
             GoalStore.saveDailyElevationGoal(ElevationUnits.toMeters(value));
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
+        if (_kind == :bonus_elevation) {
+            GoalStore.saveBonusElevationGoal(value == 0 ? null : ElevationUnits.toMeters(value));
             WatchUi.popView(WatchUi.SLIDE_DOWN);
             return true;
         }

@@ -4,14 +4,23 @@ using Toybox.WatchUi;
 
 class GoalSetupView {
     static function createMenu() as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({:title=>"UPDATE GOALS"});
-        menu.addItem(new WatchUi.MenuItem("Daily", "Auto or override", :daily, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily Elevation", "Current ride only", :daily_elevation, {}));
-        menu.addItem(new WatchUi.MenuItem("Bonus Distance", "Auto: 50% of daily", :bonus, {}));
-        menu.addItem(new WatchUi.MenuItem("Weekly", null, :weekly, {}));
-        menu.addItem(new WatchUi.MenuItem("Monthly", null, :monthly, {}));
-        menu.addItem(new WatchUi.MenuItem("Yearly", null, :yearly, {}));
-        menu.addItem(new WatchUi.MenuItem("Alerts", "Milestones and sound", :alerts, {}));
+        var menu = new WatchUi.Menu2({:title=>"GOALS"});
+        menu.addItem(new WatchUi.MenuItem("Daily distance", "Auto or custom", :daily, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily elevation", "Current ride only", :daily_elevation, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily Bonus Distance", "Auto: 50% of daily", :bonus, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily Bonus Elevation", "Auto: daily elevation", :bonus_elevation, {}));
+        menu.addItem(new WatchUi.MenuItem("Weekly distance", null, :weekly, {}));
+        menu.addItem(new WatchUi.MenuItem("Monthly distance", null, :monthly, {}));
+        menu.addItem(new WatchUi.MenuItem("Yearly distance", null, :yearly, {}));
+        return menu;
+    }
+}
+
+class SettingsView {
+    static function createMenu() as WatchUi.Menu2 {
+        var menu = new WatchUi.Menu2({:title=>"SETTINGS"});
+        menu.addItem(new WatchUi.MenuItem("Goals", null, :goals, {}));
+        menu.addItem(new WatchUi.MenuItem("Alerts", null, :alerts, {}));
         return menu;
     }
 }
@@ -23,7 +32,8 @@ class GoalPicker extends WatchUi.Picker {
         var goal = goalForKind(kind);
         var step = stepForKind(kind);
         var maximum = maximumForKind(kind);
-        _factory = new GoalValueFactory(0, maximum, step, kind == :daily || kind == :bonus);
+        _factory = new GoalValueFactory(0, maximum, step,
+            kind == :daily || kind == :bonus || kind == :bonus_elevation);
 
         var title = new WatchUi.Text({
             :text=>pickerTitle(kind),
@@ -43,6 +53,10 @@ class GoalPicker extends WatchUi.Picker {
     private function goalForKind(kind as Lang.Symbol) as Lang.Number {
         if (kind == :daily_elevation) {
             return ElevationUnits.fromMeters(GoalStore.getDailyElevationGoal()).toNumber();
+        }
+        if (kind == :bonus_elevation) {
+            var elevationBonus = GoalStore.getBonusElevationGoal();
+            return elevationBonus == null ? 0 : ElevationUnits.fromMeters(elevationBonus).toNumber();
         }
         if (kind == :bonus) {
             var bonus = GoalStore.getBonusDistanceGoal();
@@ -65,7 +79,7 @@ class GoalPicker extends WatchUi.Picker {
     }
 
     private function maximumForKind(kind as Lang.Symbol) as Lang.Number {
-        if (kind == :daily_elevation) { return 20000; }
+        if (kind == :daily_elevation || kind == :bonus_elevation) { return 20000; }
         if (kind == :yearly) { return 50000; }
         if (kind == :monthly) { return 5000; }
         if (kind == :weekly) { return 1000; }
@@ -75,6 +89,9 @@ class GoalPicker extends WatchUi.Picker {
     private function pickerTitle(kind as Lang.Symbol) as Lang.String {
         if (kind == :daily_elevation) {
             return "DAILY ELEVATION (" + ElevationUnits.label() + ")";
+        }
+        if (kind == :bonus_elevation) {
+            return "BONUS ELEVATION (" + ElevationUnits.label() + ")";
         }
         return (kind == :bonus ? "BONUS" : kind.toString().toUpper())
             + " DISTANCE (" + DistanceUnits.label() + ")";

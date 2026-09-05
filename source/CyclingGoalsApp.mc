@@ -7,7 +7,7 @@ class CyclingGoalsApp extends Application.AppBase {
         return [view, new CyclingGoalsInputDelegate(view)];
     }
     function getSettingsView() {
-        var menu = GoalSetupView.createMenu();
-        return [menu, new GoalSetupDelegate()];
+        var menu = SettingsView.createMenu();
+        return [menu, new SettingsDelegate()];
     }
 }

@@ -1,5 +1,6 @@
 using Toybox.Activity;
 using Toybox.Lang;
+using Toybox.System;
 using Toybox.Time;
 using Toybox.Time.Gregorian;
 using Toybox.UserProfile;
@@ -15,12 +16,14 @@ class GoalCalculator {
         var goals = GoalStore.getGoals();
         var totals = historyBeforeAndToday(today);
         var override = GoalStore.getDailyOverride(dateKey(today));
+        var firstDay = System.getDeviceSettings().firstDayOfWeek;
+        var todayNumber = today.day_of_week as Lang.Number;
 
         var automatic = calculateAutomaticGoal(
                 goals[0], totals[0], daysRemainingInYear(today),
                 goals[1], totals[1], daysRemainingInMonth(today),
-                goals[2], totals[2], daysRemainingInWeek(today),
-                today.day_of_week == 1, daysRemainingInMonth(today) <= 5);
+                goals[2], totals[2], daysRemainingInConfiguredWeek(todayNumber, firstDay),
+                isLastDayOfConfiguredWeek(todayNumber, firstDay), daysRemainingInMonth(today) <= 5);
         var suggested = override == null ? automatic : override.toFloat();
 
         var currentRide = info.elapsedDistance == null ? 0.0 : info.elapsedDistance.toFloat();
@@ -44,14 +47,14 @@ class GoalCalculator {
         yearGoal as Lang.Numeric, yearBeforeToday as Lang.Numeric, yearDays as Lang.Number,
         monthGoal as Lang.Numeric, monthBeforeToday as Lang.Numeric, monthDays as Lang.Number,
         weekGoal as Lang.Numeric, weekBeforeToday as Lang.Numeric, weekDays as Lang.Number,
-        isSunday as Lang.Boolean, isMonthEndWindow as Lang.Boolean) as Lang.Float {
+        isLastDayOfWeek as Lang.Boolean, isMonthEndWindow as Lang.Boolean) as Lang.Float {
 
         var yearDaily = remaining(yearGoal, yearBeforeToday) / yearDays;
         var monthDaily = remaining(monthGoal, monthBeforeToday) / monthDays;
         var weekDaily = remaining(weekGoal, weekBeforeToday) / weekDays;
         var suggested = maximum(yearDaily, maximum(monthDaily, weekDaily));
 
-        if (isSunday) {
+        if (isLastDayOfWeek) {
             suggested = maximum(suggested, remaining(weekGoal, weekBeforeToday));
             if (isMonthEndWindow) {
                 suggested = maximum(suggested, remaining(monthGoal, monthBeforeToday));
@@ -72,8 +75,35 @@ class GoalCalculator {
         return currentFraction >= 0.5;
     }
 
+    static function crossedGoal(previousFraction as Lang.Numeric, remaining as Lang.Numeric,
+            target as Lang.Numeric) as Lang.Boolean {
+        if (target <= 0 || previousFraction < 0 || previousFraction >= 1.0) { return false; }
+        var currentFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
+        return currentFraction >= 1.0;
+    }
+
+    static function daysSinceConfiguredWeekStart(dayOfWeek as Lang.Number,
+            firstDayOfWeek as Lang.Number) as Lang.Number {
+        return (dayOfWeek - firstDayOfWeek + 7) % 7;
+    }
+
+    static function daysRemainingInConfiguredWeek(dayOfWeek as Lang.Number,
+            firstDayOfWeek as Lang.Number) as Lang.Number {
+        return 7 - daysSinceConfiguredWeekStart(dayOfWeek, firstDayOfWeek);
+    }
+
+    static function isLastDayOfConfiguredWeek(dayOfWeek as Lang.Number,
+            firstDayOfWeek as Lang.Number) as Lang.Boolean {
+        return daysRemainingInConfiguredWeek(dayOfWeek, firstDayOfWeek) == 1;
+    }
+
     static function bonusTarget(automaticTarget as Lang.Numeric, configuredTarget as Lang.Numeric or Null) as Lang.Float {
         return configuredTarget == null ? automaticTarget.toFloat() * 0.5 : configuredTarget.toFloat();
+    }
+
+    static function elevationBonusTarget(dailyTarget as Lang.Numeric,
+            configuredTarget as Lang.Numeric or Null) as Lang.Float {
+        return configuredTarget == null ? dailyTarget.toFloat() : configuredTarget.toFloat();
     }
 
     static function bonusRemaining(requiredTarget as Lang.Numeric, completedToday as Lang.Numeric,
@@ -94,6 +124,9 @@ class GoalCalculator {
     // Meters before today for year/month/week, followed by meters completed today.
     private static function historyBeforeAndToday(today as Gregorian.Info) as Lang.Array<Lang.Float> {
         var totals = [0.0, 0.0, 0.0, 0.0];
+        var firstDay = System.getDeviceSettings().firstDayOfWeek;
+        var todayNumber = today.day_of_week as Lang.Number;
+        var daysSinceWeekStart = daysSinceConfiguredWeekStart(todayNumber, firstDay);
         var iterator = UserProfile.getUserActivityHistory();
         var item = iterator.next();
         while (item != null) {
@@ -107,7 +140,7 @@ class GoalCalculator {
                     } else if (daysBetween(date, today) > 0) {
                         totals[0] += meters;
                         if (date.month == today.month) { totals[1] += meters; }
-                        if (daysBetween(date, today) <= daysSinceMonday(today)) { totals[2] += meters; }
+                        if (daysBetween(date, today) <= daysSinceWeekStart) { totals[2] += meters; }
                     }
                 }
             }
@@ -132,12 +165,6 @@ class GoalCalculator {
         var am = Gregorian.moment({:year=>a.year, :month=>a.month, :day=>a.day});
         var bm = Gregorian.moment({:year=>b.year, :month=>b.month, :day=>b.day});
         return ((bm.value() - am.value()) / 86400).toNumber();
-    }
-    private static function daysSinceMonday(today as Gregorian.Info) as Lang.Number {
-        return today.day_of_week == 1 ? 6 : today.day_of_week - 2;
-    }
-    private static function daysRemainingInWeek(today as Gregorian.Info) as Lang.Number {
-        return today.day_of_week == 1 ? 1 : 9 - today.day_of_week;
     }
     private static function daysRemainingInMonth(today as Gregorian.Info) as Lang.Number {
         return daysInMonth(today.year, today.month) - today.day + 1;

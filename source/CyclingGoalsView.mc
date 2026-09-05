@@ -10,6 +10,10 @@ class CyclingGoalsView extends WatchUi.DataField {
     private var _distanceTargetMeters as Lang.Float = 0.0;
     private var _remainingElevationMeters as Lang.Float = 0.0;
     private var _elevationTargetMeters as Lang.Float = 0.0;
+    private var _elevationDisplayMode as Lang.Symbol = :required;
+    private var _bonusElevationTargetMeters as Lang.Float = 0.0;
+    private var _requiredElevationTargetMeters as Lang.Float = 0.0;
+    private var _completedElevationMeters as Lang.Float = 0.0;
     private var _recentPace as RecentPaceEstimator;
     private var _etaTrend as EtaTrendEstimator;
     private var _etaText as Lang.String = "--H:--M";
@@ -21,14 +25,18 @@ class CyclingGoalsView extends WatchUi.DataField {
     private var _completedTodayMeters as Lang.Float = 0.0;
     private var _bonusRoundsAccepted as Lang.Number = 0;
     private var _bonusOfferDeclined as Lang.Boolean = false;
+    private var _elevationBonusRoundsAccepted as Lang.Number = 0;
+    private var _elevationBonusOfferDeclined as Lang.Boolean = false;
     private var _rideEnded as Lang.Boolean = false;
     private var _sawActiveTimer as Lang.Boolean = false;
     private var _lastRideDistance as Lang.Float = -1.0;
     private var _lastTimerTime as Lang.Number = -1;
     private var _lastDistanceFraction as Lang.Float = -1.0;
     private var _distanceHalfwayAlerted as Lang.Boolean = false;
+    private var _distanceCompleteAlerted as Lang.Boolean = false;
     private var _lastElevationFraction as Lang.Float = -1.0;
     private var _elevationHalfwayAlerted as Lang.Boolean = false;
+    private var _elevationCompleteAlerted as Lang.Boolean = false;
     private var _screenWidth as Lang.Number = 246;
     private var _configured as Lang.Boolean = false;
 
@@ -70,6 +78,28 @@ class CyclingGoalsView extends WatchUi.DataField {
         updateElevationMilestone(elevationState[0], elevationState[1]);
         _remainingElevationMeters = elevationState[0];
         _elevationTargetMeters = elevationState[1];
+        _requiredElevationTargetMeters = elevationState[1];
+        _completedElevationMeters = info.totalAscent == null ? 0.0 : info.totalAscent.toFloat();
+        _elevationDisplayMode = :required;
+        _bonusElevationTargetMeters = GoalStore.bonusElevationTarget();
+        if (_remainingElevationMeters <= 0 && _bonusElevationTargetMeters > 0) {
+            if (_rideEnded || _elevationBonusOfferDeclined) {
+                _elevationDisplayMode = :complete;
+            } else {
+                var elevationBonusProgress = GoalCalculator.bonusProgress(
+                    _requiredElevationTargetMeters, _completedElevationMeters);
+                var acceptedElevationBonus = _bonusElevationTargetMeters
+                    * _elevationBonusRoundsAccepted;
+                if (_elevationBonusRoundsAccepted == 0
+                        || elevationBonusProgress >= acceptedElevationBonus) {
+                    _elevationDisplayMode = :bonus_prompt;
+                } else {
+                    _elevationDisplayMode = :bonus;
+                    _remainingElevationMeters = acceptedElevationBonus - elevationBonusProgress;
+                    _elevationTargetMeters = _bonusElevationTargetMeters;
+                }
+            }
+        }
         if (info.elapsedDistance != null && info.timerTime != null) {
             var speed = _recentPace.update(info.elapsedDistance, info.timerTime, info.averageSpeed);
             _etaText = RecentPaceEstimator.formatEta(_remainingMeters, speed);
@@ -98,7 +128,11 @@ class CyclingGoalsView extends WatchUi.DataField {
             return;
         }
         if (_distanceDisplayMode == :bonus_prompt) {
-            drawBonusPrompt(dc);
+            drawBonusPrompt(dc, false);
+            return;
+        }
+        if (_elevationDisplayMode == :bonus_prompt) {
+            drawBonusPrompt(dc, true);
             return;
         }
         var distanceStatus = progressColor(_distanceTargetMeters, _remainingMeters);
@@ -112,13 +146,17 @@ class CyclingGoalsView extends WatchUi.DataField {
         dc.fillRectangle(0, 0, dc.getWidth(), distanceBottom);
         dc.setColor(etaBackground, etaBackground);
         dc.fillRectangle(0, distanceBottom, dc.getWidth(), etaBottom - distanceBottom);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        var elevationBackground = _elevationDisplayMode == :bonus
+            ? Graphics.COLOR_GREEN : Graphics.COLOR_BLACK;
+        dc.setColor(elevationBackground, elevationBackground);
         dc.fillRectangle(0, etaBottom, dc.getWidth(), dc.getHeight() - etaBottom);
 
         if (_distanceDisplayMode != :bonus) {
             drawStatusRails(dc, 0, distanceBottom, distanceStatus);
         }
-        drawStatusRails(dc, etaBottom, dc.getHeight(), elevationStatus);
+        if (_elevationDisplayMode != :bonus) {
+            drawStatusRails(dc, etaBottom, dc.getHeight(), elevationStatus);
+        }
 
         dc.setColor(Graphics.COLOR_WHITE, distanceBackground);
         dc.drawText(x, 4, Graphics.FONT_XTINY,
@@ -145,7 +183,12 @@ class CyclingGoalsView extends WatchUi.DataField {
         drawEtaTrend(dc, etaTrendX, etaCenter);
         dc.drawLine(24, etaBottom, dc.getWidth() - 24, etaBottom);
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.setColor(_elevationDisplayMode == :bonus ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE,
+            elevationBackground);
+        if (_elevationDisplayMode == :bonus) {
+            dc.drawText(x, etaBottom + 3, Graphics.FONT_XTINY,
+                "BONUS ELEVATION REMAINING", Graphics.TEXT_JUSTIFY_CENTER);
+        }
         dc.drawText(x, elevationCenter - 12, Graphics.FONT_NUMBER_THAI_HOT,
             ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -173,38 +216,54 @@ class CyclingGoalsView extends WatchUi.DataField {
     }
 
     function isBonusPromptVisible() as Lang.Boolean {
-        return _distanceDisplayMode == :bonus_prompt;
+        return _distanceDisplayMode == :bonus_prompt || _elevationDisplayMode == :bonus_prompt;
     }
 
     function chooseBonusAt(x as Lang.Number) as Void {
         if (!isBonusPromptVisible()) { return; }
         var accepted = x < (_screenWidth / 2);
-        _distanceDisplayMode = accepted ? :bonus : :complete;
-        if (accepted) {
-            _bonusRoundsAccepted += 1;
-            _remainingMeters = GoalCalculator.bonusRemainingForRounds(
-                _requiredTargetMeters, _completedTodayMeters,
-                _bonusTargetMeters, _bonusRoundsAccepted);
-            _distanceTargetMeters = _bonusTargetMeters;
+        if (_distanceDisplayMode == :bonus_prompt) {
+            _distanceDisplayMode = accepted ? :bonus : :complete;
+            if (accepted) {
+                _bonusRoundsAccepted += 1;
+                _remainingMeters = GoalCalculator.bonusRemainingForRounds(
+                    _requiredTargetMeters, _completedTodayMeters,
+                    _bonusTargetMeters, _bonusRoundsAccepted);
+                _distanceTargetMeters = _bonusTargetMeters;
+            } else {
+                _bonusOfferDeclined = true;
+            }
         } else {
-            _bonusOfferDeclined = true;
+            _elevationDisplayMode = accepted ? :bonus : :complete;
+            if (accepted) {
+                _elevationBonusRoundsAccepted += 1;
+                _remainingElevationMeters = GoalCalculator.bonusRemainingForRounds(
+                    _requiredElevationTargetMeters, _completedElevationMeters,
+                    _bonusElevationTargetMeters, _elevationBonusRoundsAccepted);
+                _elevationTargetMeters = _bonusElevationTargetMeters;
+            } else {
+                _elevationBonusOfferDeclined = true;
+            }
         }
         WatchUi.requestUpdate();
     }
 
-    private function drawBonusPrompt(dc as Graphics.Dc) as Void {
+    private function drawBonusPrompt(dc as Graphics.Dc, isElevation as Lang.Boolean) as Void {
         var width = dc.getWidth();
         var height = dc.getHeight();
         var center = width / 2;
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
+        var roundsAccepted = isElevation ? _elevationBonusRoundsAccepted : _bonusRoundsAccepted;
+        var target = isElevation ? _bonusElevationTargetMeters : _bonusTargetMeters;
+        var targetText = isElevation
+            ? ElevationUnits.fromMeters(target).format("%.0f") + " " + ElevationUnits.label()
+            : DistanceUnits.fromMeters(target).format("%.0f") + " " + DistanceUnits.label();
         dc.drawText(center, 22, Graphics.FONT_SMALL,
-            _bonusRoundsAccepted == 0 ? "TODAY'S GOAL COMPLETE" : "BONUS GOAL COMPLETE",
+            roundsAccepted == 0 ? "TODAY'S GOAL COMPLETE" : "BONUS GOAL COMPLETE",
             Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(center, 66, Graphics.FONT_MEDIUM,
-            "CHASE " + DistanceUnits.fromMeters(_bonusTargetMeters).format("%.0f") + " "
-                + (_bonusRoundsAccepted == 0 ? "BONUS " : "MORE ")
-                + DistanceUnits.label() + "?",
+            "CHASE " + targetText + (roundsAccepted == 0 ? " BONUS?" : " MORE?"),
             Graphics.TEXT_JUSTIFY_CENTER);
 
         var buttonTop = (height * 58) / 100;
@@ -227,12 +286,16 @@ class CyclingGoalsView extends WatchUi.DataField {
                 || (_lastTimerTime >= 0 && timer >= 0 && timer < _lastTimerTime)) {
             _bonusRoundsAccepted = 0;
             _bonusOfferDeclined = false;
+            _elevationBonusRoundsAccepted = 0;
+            _elevationBonusOfferDeclined = false;
             _rideEnded = false;
             _sawActiveTimer = false;
             _lastDistanceFraction = -1.0;
             _distanceHalfwayAlerted = false;
+            _distanceCompleteAlerted = false;
             _lastElevationFraction = -1.0;
             _elevationHalfwayAlerted = false;
+            _elevationCompleteAlerted = false;
         }
         _lastRideDistance = distance;
         _lastTimerTime = timer;
@@ -247,7 +310,18 @@ class CyclingGoalsView extends WatchUi.DataField {
     private function updateDistanceMilestone(remaining as Lang.Numeric, target as Lang.Numeric) as Void {
         if (target <= 0) { return; }
         var fraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        if (GoalCalculator.crossedHalfway(_lastDistanceFraction, remaining, target)
+        if (GoalCalculator.crossedGoal(_lastDistanceFraction, remaining, target)
+                && !_distanceCompleteAlerted && GoalStore.alertEnabled(:goal)) {
+            _distanceCompleteAlerted = true;
+            if (WatchUi.DataField has :showAlert) {
+                WatchUi.DataField.showAlert(new MilestoneAlertView(
+                    "GOAL COMPLETE", "0.0 " + DistanceUnits.label() + " TO GO",
+                    :distance_complete));
+            }
+            if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
+                Attention.playTone(Attention.TONE_SUCCESS);
+            }
+        } else if (GoalCalculator.crossedHalfway(_lastDistanceFraction, remaining, target)
                 && !_distanceHalfwayAlerted && GoalStore.alertEnabled(:halfway)) {
             _distanceHalfwayAlerted = true;
             if (WatchUi.DataField has :showAlert) {
@@ -266,7 +340,18 @@ class CyclingGoalsView extends WatchUi.DataField {
     private function updateElevationMilestone(remaining as Lang.Numeric, target as Lang.Numeric) as Void {
         if (target <= 0) { return; }
         var fraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        if (GoalCalculator.crossedHalfway(_lastElevationFraction, remaining, target)
+        if (GoalCalculator.crossedGoal(_lastElevationFraction, remaining, target)
+                && !_elevationCompleteAlerted && GoalStore.alertEnabled(:goal)) {
+            _elevationCompleteAlerted = true;
+            if (WatchUi.DataField has :showAlert) {
+                WatchUi.DataField.showAlert(new MilestoneAlertView(
+                    "GOAL COMPLETE", "0 " + ElevationUnits.label() + " TO GO",
+                    :elevation_complete));
+            }
+            if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
+                Attention.playTone(Attention.TONE_SUCCESS);
+            }
+        } else if (GoalCalculator.crossedHalfway(_lastElevationFraction, remaining, target)
                 && !_elevationHalfwayAlerted && GoalStore.alertEnabled(:halfway)) {
             _elevationHalfwayAlerted = true;
             if (WatchUi.DataField has :showAlert) {

@@ -1,5 +1,6 @@
 using Toybox.Lang;
 using Toybox.Test;
+using Toybox.Time.Gregorian;
 
 const TEST_MILE = 1609.344;
 
@@ -130,6 +131,16 @@ class GoalCalculatorTests {
     }
 
     (:test)
+    static function automaticElevationBonusRepeatsDailyGoal(logger) as Lang.Boolean {
+        return closeTo(GoalCalculator.elevationBonusTarget(1370, null), 1370);
+    }
+
+    (:test)
+    static function customElevationBonusOverridesDailyGoal(logger) as Lang.Boolean {
+        return closeTo(GoalCalculator.elevationBonusTarget(1370, 2000), 2000);
+    }
+
+    (:test)
     static function requiredGoalOvershootCountsTowardBonus(logger) as Lang.Boolean {
         var result = GoalCalculator.bonusRemaining(30 * TEST_MILE, 36.5 * TEST_MILE, 15 * TEST_MILE);
         return closeTo(result / TEST_MILE, 8.5);
@@ -167,6 +178,50 @@ class GoalCalculatorTests {
     (:test)
     static function halfwayIgnoresDisabledGoal(logger) as Lang.Boolean {
         return !GoalCalculator.crossedHalfway(0.49, 0, 0);
+    }
+
+    (:test)
+    static function goalCompleteTriggersOnCrossing(logger) as Lang.Boolean {
+        return GoalCalculator.crossedGoal(0.99, 0, 1000);
+    }
+
+    (:test)
+    static function goalCompleteDoesNotTriggerOnFirstSample(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedGoal(-1.0, 0, 1000);
+    }
+
+    (:test)
+    static function goalCompleteDoesNotRepeat(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedGoal(1.0, 0, 1000);
+    }
+
+    (:test)
+    static function goalCompleteIgnoresDisabledGoal(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedGoal(0.99, 0, 0);
+    }
+
+    (:test)
+    static function mondayWeekStartsOnMonday(logger) as Lang.Boolean {
+        return GoalCalculator.daysSinceConfiguredWeekStart(
+            Gregorian.DAY_MONDAY, Gregorian.DAY_MONDAY) == 0;
+    }
+
+    (:test)
+    static function sundayEndsMondayBasedWeek(logger) as Lang.Boolean {
+        return GoalCalculator.isLastDayOfConfiguredWeek(
+            Gregorian.DAY_SUNDAY, Gregorian.DAY_MONDAY);
+    }
+
+    (:test)
+    static function saturdayEndsSundayBasedWeek(logger) as Lang.Boolean {
+        return GoalCalculator.isLastDayOfConfiguredWeek(
+            Gregorian.DAY_SATURDAY, Gregorian.DAY_SUNDAY);
+    }
+
+    (:test)
+    static function sundayStartsSundayBasedWeek(logger) as Lang.Boolean {
+        return GoalCalculator.daysRemainingInConfiguredWeek(
+            Gregorian.DAY_SUNDAY, Gregorian.DAY_SUNDAY) == 7;
     }
 
     private static function closeTo(actual as Lang.Numeric, expected as Lang.Numeric) as Lang.Boolean {
