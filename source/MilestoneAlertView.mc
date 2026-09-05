@@ -50,18 +50,15 @@ class MilestoneAlertView extends WatchUi.DataFieldAlert {
                         : Rez.Drawables.DistanceCompleteBackground);
         dc.drawBitmap(0, 0, background);
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(centerX, 92, Graphics.FONT_SYSTEM_MEDIUM,
-            isElevation ? "ELEVATION" : "DISTANCE", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 114, Graphics.FONT_SYSTEM_MEDIUM,
-            "GOAL COMPLETE", Graphics.TEXT_JUSTIFY_CENTER);
-
         var separator = _detail.find(" ");
         var value = separator == null ? _detail : _detail.substring(0, separator);
         var label = separator == null ? "" : _detail.substring(separator + 1, _detail.length());
-        dc.drawText(centerX, 148, Graphics.FONT_SYSTEM_NUMBER_THAI_HOT,
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, isElevation ? 18 : 126, Graphics.FONT_SYSTEM_LARGE,
+            "GOAL COMPLETE", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 190, Graphics.FONT_SYSTEM_NUMBER_THAI_HOT,
             value, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 228, Graphics.FONT_SYSTEM_MEDIUM,
+        dc.drawText(centerX, 264, Graphics.FONT_SYSTEM_MEDIUM,
             label, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
