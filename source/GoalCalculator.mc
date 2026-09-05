@@ -121,6 +121,12 @@ class GoalCalculator {
             (bonusBlock.toFloat() * rounds) - bonusProgress(requiredTarget, completedToday));
     }
 
+    static function bonusRoundCompleted(progress as Lang.Numeric, bonusBlock as Lang.Numeric,
+            acceptedRounds as Lang.Number, alertedRounds as Lang.Number) as Lang.Boolean {
+        if (bonusBlock <= 0 || acceptedRounds <= alertedRounds) { return false; }
+        return progress.toFloat() >= bonusBlock.toFloat() * acceptedRounds;
+    }
+
     // Meters before today for year/month/week, followed by meters completed today.
     private static function historyBeforeAndToday(today as Gregorian.Info) as Lang.Array<Lang.Float> {
         var totals = [0.0, 0.0, 0.0, 0.0];

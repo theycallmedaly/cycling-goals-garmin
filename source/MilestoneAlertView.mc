@@ -20,7 +20,9 @@ class MilestoneAlertView extends WatchUi.DataFieldAlert {
         dc.clear();
 
         var centerX = dc.getWidth() / 2;
-        if (_iconKind == :distance_complete || _iconKind == :elevation_complete) {
+        if (_iconKind == :distance_complete || _iconKind == :elevation_complete
+                || _iconKind == :distance_bonus_complete
+                || _iconKind == :elevation_bonus_complete) {
             drawCompletionAlert(dc, centerX);
             return;
         }
@@ -44,7 +46,8 @@ class MilestoneAlertView extends WatchUi.DataFieldAlert {
     }
 
     private function drawCompletionAlert(dc as Graphics.Dc, centerX as Lang.Number) as Void {
-        var isElevation = _iconKind == :elevation_complete;
+        var isElevation = _iconKind == :elevation_complete
+            || _iconKind == :elevation_bonus_complete;
         var background = Application.loadResource(
             isElevation ? Rez.Drawables.ElevationCompleteBackground
                         : Rez.Drawables.DistanceCompleteBackground);
@@ -55,7 +58,7 @@ class MilestoneAlertView extends WatchUi.DataFieldAlert {
         var label = separator == null ? "" : _detail.substring(separator + 1, _detail.length());
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(centerX, isElevation ? 18 : 126, Graphics.FONT_SYSTEM_LARGE,
-            "GOAL COMPLETE", Graphics.TEXT_JUSTIFY_CENTER);
+            _title, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(centerX, 190, Graphics.FONT_SYSTEM_NUMBER_THAI_HOT,
             value, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(centerX, 264, Graphics.FONT_SYSTEM_MEDIUM,

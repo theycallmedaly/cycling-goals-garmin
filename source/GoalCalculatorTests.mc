@@ -161,6 +161,26 @@ class GoalCalculatorTests {
     }
 
     (:test)
+    static function acceptedBonusRoundCompletesAtThreshold(logger) as Lang.Boolean {
+        return GoalCalculator.bonusRoundCompleted(15 * TEST_MILE, 15 * TEST_MILE, 1, 0);
+    }
+
+    (:test)
+    static function bonusRoundDoesNotAlertBeforeThreshold(logger) as Lang.Boolean {
+        return !GoalCalculator.bonusRoundCompleted(14.9 * TEST_MILE, 15 * TEST_MILE, 1, 0);
+    }
+
+    (:test)
+    static function bonusRoundAlertDoesNotRepeat(logger) as Lang.Boolean {
+        return !GoalCalculator.bonusRoundCompleted(15 * TEST_MILE, 15 * TEST_MILE, 1, 1);
+    }
+
+    (:test)
+    static function eachAcceptedBonusRoundCanAlert(logger) as Lang.Boolean {
+        return GoalCalculator.bonusRoundCompleted(30 * TEST_MILE, 15 * TEST_MILE, 2, 1);
+    }
+
+    (:test)
     static function halfwayTriggersOnCrossing(logger) as Lang.Boolean {
         return GoalCalculator.crossedHalfway(0.49, 500, 1000);
     }

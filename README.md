@@ -20,6 +20,8 @@ The display also estimates the time needed to complete the remaining distance. I
 
 After the required daily distance is complete, the field offers an optional bonus goal. The default bonus is half of the day's original automatic distance target; the rider can instead configure a fixed Bonus Distance in Settings. Accepting the prompt replaces the required distance with a bonus countdown, credits any overshoot toward it, and uses a green-only distance section without status rails. Each time a bonus block is completed, the rider may accept another block of the same size. The loop ends when the rider selects No or stops the ride.
 
+Completing an accepted distance or elevation bonus block shows the corresponding full-screen completion artwork labeled `BONUS COMPLETE` and plays the success tone when Bonus Complete and Sound alerts are enabled.
+
 ## Current interface
 
 ```text
