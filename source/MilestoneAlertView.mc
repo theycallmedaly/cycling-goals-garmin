@@ -1,3 +1,4 @@
+using Toybox.Application;
 using Toybox.Graphics;
 using Toybox.Lang;
 using Toybox.WatchUi;
@@ -19,6 +20,10 @@ class MilestoneAlertView extends WatchUi.DataFieldAlert {
         dc.clear();
 
         var centerX = dc.getWidth() / 2;
+        if (_iconKind == :distance_complete || _iconKind == :elevation_complete) {
+            drawCompletionAlert(dc, centerX);
+            return;
+        }
         if (_iconKind == :elevation) {
             drawElevationIcon(dc, centerX);
         } else {
@@ -36,6 +41,28 @@ class MilestoneAlertView extends WatchUi.DataFieldAlert {
             Graphics.FONT_SYSTEM_NUMBER_THAI_HOT, value, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(centerX, 214,
             Graphics.FONT_SYSTEM_LARGE, label, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    private function drawCompletionAlert(dc as Graphics.Dc, centerX as Lang.Number) as Void {
+        var isElevation = _iconKind == :elevation_complete;
+        var background = Application.loadResource(
+            isElevation ? Rez.Drawables.ElevationCompleteBackground
+                        : Rez.Drawables.DistanceCompleteBackground);
+        dc.drawBitmap(0, 0, background);
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, 92, Graphics.FONT_SYSTEM_MEDIUM,
+            isElevation ? "ELEVATION" : "DISTANCE", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 114, Graphics.FONT_SYSTEM_MEDIUM,
+            "GOAL COMPLETE", Graphics.TEXT_JUSTIFY_CENTER);
+
+        var separator = _detail.find(" ");
+        var value = separator == null ? _detail : _detail.substring(0, separator);
+        var label = separator == null ? "" : _detail.substring(separator + 1, _detail.length());
+        dc.drawText(centerX, 148, Graphics.FONT_SYSTEM_NUMBER_THAI_HOT,
+            value, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 228, Graphics.FONT_SYSTEM_MEDIUM,
+            label, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawDistanceIcon(dc as Graphics.Dc, centerX as Lang.Number) as Void {

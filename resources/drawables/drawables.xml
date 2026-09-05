@@ -1,4 +1,5 @@
 <drawables>
     <bitmap id="LauncherIcon" filename="launcher_icon.svg" />
+    <bitmap id="DistanceCompleteBackground" filename="distance_goal_complete_background.png" />
+    <bitmap id="ElevationCompleteBackground" filename="elevation_goal_complete_background.png" />
 </drawables>
-
