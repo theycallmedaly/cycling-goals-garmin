@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cycling Goals Git Caretaker"
+  short_description: "Safely inspect, verify, and commit approved Git housekeeping"
+  default_prompt: "Use $cycling-goals-git-caretaker to inspect and safely commit the approved handoff."
