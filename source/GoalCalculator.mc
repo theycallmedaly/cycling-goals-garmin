@@ -70,14 +70,17 @@ class GoalCalculator {
 
     static function crossedHalfway(previousFraction as Lang.Numeric, remaining as Lang.Numeric,
             target as Lang.Numeric) as Lang.Boolean {
-        if (target <= 0 || previousFraction < 0 || previousFraction >= 0.5) { return false; }
+        if (target <= 0 || previousFraction >= 0.5) { return false; }
         var currentFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
+        // Garmin may not run a data field until its screen becomes active. Treat the
+        // first reading as a transition from the start of the ride so a milestone
+        // already crossed while another data screen was visible is not discarded.
         return currentFraction >= 0.5;
     }
 
     static function crossedGoal(previousFraction as Lang.Numeric, remaining as Lang.Numeric,
             target as Lang.Numeric) as Lang.Boolean {
-        if (target <= 0 || previousFraction < 0 || previousFraction >= 1.0) { return false; }
+        if (target <= 0 || previousFraction >= 1.0) { return false; }
         var currentFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
         return currentFraction >= 1.0;
     }

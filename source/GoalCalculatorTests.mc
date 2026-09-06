@@ -186,8 +186,13 @@ class GoalCalculatorTests {
     }
 
     (:test)
-    static function halfwayDoesNotTriggerOnFirstSample(logger) as Lang.Boolean {
-        return !GoalCalculator.crossedHalfway(-1.0, 400, 1000);
+    static function halfwayCatchesUpOnFirstSample(logger) as Lang.Boolean {
+        return GoalCalculator.crossedHalfway(-1.0, 400, 1000);
+    }
+
+    (:test)
+    static function halfwayDoesNotTriggerOnEarlyFirstSample(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedHalfway(-1.0, 600, 1000);
     }
 
     (:test)
@@ -206,8 +211,13 @@ class GoalCalculatorTests {
     }
 
     (:test)
-    static function goalCompleteDoesNotTriggerOnFirstSample(logger) as Lang.Boolean {
-        return !GoalCalculator.crossedGoal(-1.0, 0, 1000);
+    static function goalCompleteCatchesUpOnFirstSample(logger) as Lang.Boolean {
+        return GoalCalculator.crossedGoal(-1.0, 0, 1000);
+    }
+
+    (:test)
+    static function goalCompleteDoesNotTriggerOnEarlyFirstSample(logger) as Lang.Boolean {
+        return !GoalCalculator.crossedGoal(-1.0, 1, 1000);
     }
 
     (:test)

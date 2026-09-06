@@ -319,6 +319,7 @@ class CyclingGoalsView extends WatchUi.DataField {
         if (GoalCalculator.crossedGoal(_lastDistanceFraction, remaining, target)
                 && !_distanceCompleteAlerted && GoalStore.alertEnabled(:goal)) {
             _distanceCompleteAlerted = true;
+            _distanceHalfwayAlerted = true;
             if (WatchUi.DataField has :showAlert) {
                 WatchUi.DataField.showAlert(new MilestoneAlertView(
                     "GOAL COMPLETE", "0.0 " + DistanceUnits.label() + " TO GO",
@@ -349,6 +350,7 @@ class CyclingGoalsView extends WatchUi.DataField {
         if (GoalCalculator.crossedGoal(_lastElevationFraction, remaining, target)
                 && !_elevationCompleteAlerted && GoalStore.alertEnabled(:goal)) {
             _elevationCompleteAlerted = true;
+            _elevationHalfwayAlerted = true;
             if (WatchUi.DataField has :showAlert) {
                 WatchUi.DataField.showAlert(new MilestoneAlertView(
                     "GOAL COMPLETE", "0 " + ElevationUnits.label() + " TO GO",
