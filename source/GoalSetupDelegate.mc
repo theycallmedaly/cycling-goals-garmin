@@ -20,7 +20,8 @@ class SettingsDelegate extends WatchUi.Menu2InputDelegate {
         if (kind == :goals) {
             WatchUi.pushView(GoalSetupView.createMenu(), new GoalSetupDelegate(), WatchUi.SLIDE_UP);
         } else if (kind == :alerts) {
-            WatchUi.pushView(AlertSettingsView.createMenu(), new AlertSettingsDelegate(), WatchUi.SLIDE_UP);
+            var menu = AlertSettingsView.createMenu();
+            WatchUi.pushView(menu, new AlertSettingsDelegate(menu), WatchUi.SLIDE_UP);
         }
     }
 }

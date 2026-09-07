@@ -114,10 +114,21 @@ class GoalStore {
         return booleanOrDefault(SOUND_ALERTS_KEY, true);
     }
 
+    static function individualAlertSettings() as Lang.Array<Lang.Symbol> {
+        return [:halfway_alerts, :pace_alerts, :goal_alerts, :bonus_alerts, :sound_alerts];
+    }
+
     static function saveAlertSetting(kind as Lang.Symbol, enabled as Lang.Boolean) as Void {
+        if (kind == :all_alerts) {
+            Application.Storage.setValue(ALL_ALERTS_KEY, enabled);
+            var settings = individualAlertSettings();
+            for (var i = 0; i < settings.size(); i += 1) {
+                saveAlertSetting(settings[i], enabled);
+            }
+            return;
+        }
         var key = SOUND_ALERTS_KEY;
-        if (kind == :all_alerts) { key = ALL_ALERTS_KEY; }
-        else if (kind == :halfway_alerts) { key = HALFWAY_ALERTS_KEY; }
+        if (kind == :halfway_alerts) { key = HALFWAY_ALERTS_KEY; }
         else if (kind == :pace_alerts) { key = PACE_ALERTS_KEY; }
         else if (kind == :goal_alerts) { key = GOAL_ALERTS_KEY; }
         else if (kind == :bonus_alerts) { key = BONUS_ALERTS_KEY; }

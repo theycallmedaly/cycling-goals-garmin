@@ -21,12 +21,37 @@ class AlertSettingsView {
 }
 
 class AlertSettingsDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() { Menu2InputDelegate.initialize(); }
+    private var _menu as WatchUi.Menu2;
+
+    function initialize(menu as WatchUi.Menu2) {
+        Menu2InputDelegate.initialize();
+        _menu = menu;
+    }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         if (item instanceof WatchUi.ToggleMenuItem) {
             var toggle = item as WatchUi.ToggleMenuItem;
-            GoalStore.saveAlertSetting(toggle.getId() as Lang.Symbol, toggle.isEnabled());
+            var kind = toggle.getId() as Lang.Symbol;
+            var enabled = toggle.isEnabled();
+            GoalStore.saveAlertSetting(kind, enabled);
+            if (kind == :all_alerts) {
+                updateIndividualToggles(enabled);
+            }
+        }
+    }
+
+    private function updateIndividualToggles(enabled as Lang.Boolean) as Void {
+        var settings = GoalStore.individualAlertSettings();
+        for (var i = 0; i < settings.size(); i += 1) {
+            var index = _menu.findItemById(settings[i]);
+            if (index >= 0) {
+                var item = _menu.getItem(index);
+                if (item instanceof WatchUi.ToggleMenuItem) {
+                    var toggle = item as WatchUi.ToggleMenuItem;
+                    toggle.setEnabled(enabled);
+                    _menu.updateItem(toggle, index);
+                }
+            }
         }
     }
 }

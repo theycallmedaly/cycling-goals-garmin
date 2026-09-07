@@ -231,6 +231,23 @@ class GoalCalculatorTests {
     }
 
     (:test)
+    static function allAlertsCascadesToIndividualSettings(logger) as Lang.Boolean {
+        GoalStore.saveAlertSetting(:all_alerts, false);
+        var settings = GoalStore.individualAlertSettings();
+        var disabled = true;
+        for (var i = 0; i < settings.size(); i += 1) {
+            disabled = disabled && !GoalStore.alertSetting(settings[i]);
+        }
+
+        GoalStore.saveAlertSetting(:all_alerts, true);
+        var enabled = true;
+        for (var j = 0; j < settings.size(); j += 1) {
+            enabled = enabled && GoalStore.alertSetting(settings[j]);
+        }
+        return disabled && enabled;
+    }
+
+    (:test)
     static function mondayWeekStartsOnMonday(logger) as Lang.Boolean {
         return GoalCalculator.daysSinceConfiguredWeekStart(
             Gregorian.DAY_MONDAY, Gregorian.DAY_MONDAY) == 0;
