@@ -175,6 +175,9 @@ class CyclingGoalsView extends WatchUi.DataField {
             DistanceUnits.fromMeters(_remainingMeters).format("%.2f"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, distanceCenter + 14, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
+        if (_distanceDisplayMode != :bonus) {
+            drawGoalProgressBar(dc, distanceBottom, _distanceTargetMeters, _remainingMeters);
+        }
 
         var etaForeground = etaBackground == Graphics.COLOR_GREEN ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE;
         dc.setColor(etaForeground, etaBackground);
@@ -197,6 +200,48 @@ class CyclingGoalsView extends WatchUi.DataField {
             ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, elevationCenter + 14, Graphics.FONT_SMALL, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
+        if (_elevationDisplayMode != :bonus) {
+            drawGoalProgressBar(dc, dc.getHeight(), _elevationTargetMeters,
+                _remainingElevationMeters);
+        }
+    }
+
+    private function drawGoalProgressBar(dc as Graphics.Dc, bottom as Lang.Number,
+            target as Lang.Numeric, remaining as Lang.Numeric) as Void {
+        var segments = 7;
+        var sideMargin = 24;
+        var gap = 5;
+        var barHeight = 6;
+        var availableWidth = dc.getWidth() - (sideMargin * 2);
+        var segmentWidth = (availableWidth - (gap * (segments - 1))) / segments;
+        var completedFraction = target <= 0
+            ? 1.0
+            : (target.toFloat() - remaining.toFloat()) / target.toFloat();
+        var completedFourteenths = (completedFraction * 14).toNumber();
+        if (completedFourteenths < 0) { completedFourteenths = 0; }
+        if (completedFourteenths > 14) { completedFourteenths = 14; }
+        var y = bottom - 12;
+        for (var segment = 0; segment < segments; segment += 1) {
+            var left = sideMargin + segment * (segmentWidth + gap);
+            if (segment == 3) {
+                var halfWidth = ((segmentWidth - gap) / 2).toNumber();
+                var secondHalfWidth = segmentWidth - gap - halfWidth;
+                var firstHalfColor = completedFourteenths >= 7
+                    ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
+                var secondHalfColor = completedFourteenths >= 8
+                    ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
+                dc.setColor(firstHalfColor, firstHalfColor);
+                dc.fillRectangle(left, y, halfWidth, barHeight);
+                dc.setColor(secondHalfColor, secondHalfColor);
+                dc.fillRectangle(left + halfWidth + gap, y, secondHalfWidth, barHeight);
+            } else {
+                var completionThreshold = (segment + 1) * 2;
+                var color = completedFourteenths >= completionThreshold
+                    ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
+                dc.setColor(color, color);
+                dc.fillRectangle(left, y, segmentWidth, barHeight);
+            }
+        }
     }
 
     private function progressColor(target as Lang.Numeric, remaining as Lang.Numeric) as Graphics.ColorType {
