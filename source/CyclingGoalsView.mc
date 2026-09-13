@@ -39,6 +39,8 @@ class CyclingGoalsView extends WatchUi.DataField {
     private var _lastElevationFraction as Lang.Float = -1.0;
     private var _elevationHalfwayAlerted as Lang.Boolean = false;
     private var _elevationCompleteAlerted as Lang.Boolean = false;
+    private var _distanceWeekdayLimitApplied as Lang.Boolean = false;
+    private var _elevationWeekdayLimitApplied as Lang.Boolean = false;
     private var _screenWidth as Lang.Number = 246;
     private var _configured as Lang.Boolean = false;
 
@@ -58,6 +60,7 @@ class CyclingGoalsView extends WatchUi.DataField {
         _distanceTargetMeters = distanceState[1];
         _requiredTargetMeters = distanceState[1];
         _completedTodayMeters = distanceState[2];
+        _distanceWeekdayLimitApplied = distanceState[4] > 0;
         _distanceDisplayMode = :required;
         _bonusTargetMeters = GoalCalculator.bonusTarget(
             distanceState[3], GoalStore.getBonusDistanceGoal());
@@ -77,14 +80,16 @@ class CyclingGoalsView extends WatchUi.DataField {
                 }
             }
         }
-        var elevationState = GoalCalculator.elevationStateForToday(info);
+        var elevationState = GoalCalculator.elevationStateForToday(info, distanceState[5] > 0);
         updateElevationMilestone(elevationState[0], elevationState[1]);
         _remainingElevationMeters = elevationState[0];
         _elevationTargetMeters = elevationState[1];
         _requiredElevationTargetMeters = elevationState[1];
         _completedElevationMeters = info.totalAscent == null ? 0.0 : info.totalAscent.toFloat();
+        _elevationWeekdayLimitApplied = elevationState[2] > 0;
         _elevationDisplayMode = :required;
-        _bonusElevationTargetMeters = GoalStore.bonusElevationTarget();
+        _bonusElevationTargetMeters = GoalCalculator.elevationBonusTarget(
+            elevationState[1], GoalStore.getBonusElevationGoal());
         if (_remainingElevationMeters <= 0 && _bonusElevationTargetMeters > 0) {
             if (_rideEnded || _elevationBonusOfferDeclined) {
                 _elevationDisplayMode = :complete;
@@ -172,7 +177,8 @@ class CyclingGoalsView extends WatchUi.DataField {
         var elevationCenter = etaBottom + ((dc.getHeight() - etaBottom) / 2);
 
         dc.drawText(x, distanceCenter - 12, Graphics.FONT_NUMBER_THAI_HOT,
-            DistanceUnits.fromMeters(_remainingMeters).format("%.2f"),
+            DistanceUnits.fromMeters(_remainingMeters).format("%.2f")
+                + (_distanceWeekdayLimitApplied && _distanceDisplayMode != :bonus ? "*" : ""),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, distanceCenter + 14, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
         if (_distanceDisplayMode != :bonus) {
@@ -197,7 +203,8 @@ class CyclingGoalsView extends WatchUi.DataField {
                 "BONUS ELEVATION REMAINING", Graphics.TEXT_JUSTIFY_CENTER);
         }
         dc.drawText(x, elevationCenter - 12, Graphics.FONT_NUMBER_THAI_HOT,
-            ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f"),
+            ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f")
+                + (_elevationWeekdayLimitApplied && _elevationDisplayMode != :bonus ? "*" : ""),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, elevationCenter + 14, Graphics.FONT_SMALL, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
         if (_elevationDisplayMode != :bonus) {

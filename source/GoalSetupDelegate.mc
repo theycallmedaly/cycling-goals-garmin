@@ -36,6 +36,38 @@ class GoalPickerDelegate extends WatchUi.PickerDelegate {
 
     function onAccept(values as Lang.Array) as Lang.Boolean {
         var value = values[0] as Lang.Number;
+        if (_kind == :rest_weekdays) {
+            GoalStore.saveRestWeekdays(value);
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
+        if (_kind == :long_days) {
+            GoalStore.saveLongDays(value);
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
+        if (_kind == :long_day_distance) {
+            GoalStore.saveLongDayDistanceGoal(DistanceUnits.toMeters(value));
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
+        if (_kind == :long_day_elevation) {
+            GoalStore.saveLongDayElevationGoal(ElevationUnits.toMeters(value));
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
+        if (_kind == :weekday_distance_limit) {
+            GoalStore.saveWeekdayDistanceLimit(
+                value == 0 ? null : DistanceUnits.toMeters(value));
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
+        if (_kind == :weekday_elevation_limit) {
+            GoalStore.saveWeekdayElevationLimit(
+                value == 0 ? null : ElevationUnits.toMeters(value));
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        }
         if (_kind == :daily_elevation) {
             GoalStore.saveDailyElevationGoal(ElevationUnits.toMeters(value));
             WatchUi.popView(WatchUi.SLIDE_DOWN);

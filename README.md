@@ -8,11 +8,15 @@ The rider configures yearly, monthly, and weekly distance goals in the field's o
 
 The automatic target for today is the largest of the daily averages required to finish the yearly, monthly, and weekly goals.
 
+The schedule defaults to one flexible rest weekday and one Saturday long day per calendar week. Rest weekdays reduce the number of weekday ride slots used to distribute the remaining distance; after the available weekday slots have been ridden, another weekday becomes a zero-distance and zero-elevation rest day. Long-day distance and elevation goals default to 75 miles and 4,500 feet and can be changed independently in Settings. A second configured long day uses Sunday. Setting all five weekdays as rest days moves the distance calculation entirely onto weekend days.
+
+Optional weekday distance and elevation limits cap an automatically calculated weekday target. When a cap is active, the displayed remaining value includes an asterisk. Distance that cannot fit under a weekday limit is allocated to the remaining weekend targets. A same-day custom distance override is not capped.
+
 On Sunday, the default includes all distance still required to close the weekly goal. If Sunday falls within the final five calendar days of the month, it also includes all distance required to close the monthly goal. Because a ride counts toward both periods, the larger remainder is used rather than adding them.
 
 Completed rides earlier today and the current ride are subtracted from today's target. The displayed value never falls below zero.
 
-The rider can also set a daily elevation goal. It defaults to 1,370 feet and is reduced only by the current ride's live total ascent. Historical climbing is intentionally excluded because Connect IQ's activity-history records expose distance but not elevation gain.
+The rider can also set a daily elevation goal. It defaults to 1,370 feet and is reduced only by the current ride's live total ascent. On ordinary weekdays, that goal is distributed across the configured number of weekday riding days; configured long days use 4,500 feet. Historical climbing is intentionally excluded because Connect IQ's activity-history records expose distance but not elevation gain.
 
 On supported color devices, the distance and elevation sections remain black so Garmin's native alerts stay visible. Slim side rails communicate each goal's status: red below 75% complete, white from 75% through 99.9%, and green when the goal is met. Distance and elevation change independently.
 
@@ -38,7 +42,7 @@ MILES or KM
 FT or M
 ```
 
-If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for Daily Distance, Daily Elevation, Bonus Distance, Weekly, Monthly, and Yearly. Daily distance is automatic unless the rider creates a same-day override. Bonus Distance defaults to `AUTO` (50% of the original automatic daily target) but may be set to a fixed distance. The daily elevation goal and weekly, monthly, and yearly distance goals persist.
+If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for daily distance and elevation, rest weekdays, long days, weekday limits, bonus goals, and weekly, monthly, and yearly distance. Daily distance is automatic unless the rider creates a same-day override. Bonus Distance defaults to `AUTO` (50% of the original automatic daily target) but may be set to a fixed distance. Schedule counts, limits, the daily elevation goal, and weekly, monthly, and yearly distance goals persist.
 
 First-time defaults are 100 miles weekly, 500 miles monthly, and 7,000 miles yearly. They are converted for display when the device uses metric units. Goal editing uses Garmin's native picker so values redraw reliably and inherit the device's standard touch behavior.
 
