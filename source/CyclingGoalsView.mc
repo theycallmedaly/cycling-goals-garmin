@@ -181,9 +181,8 @@ class CyclingGoalsView extends WatchUi.DataField {
                 + (_distanceWeekdayLimitApplied && _distanceDisplayMode != :bonus ? "*" : ""),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, distanceCenter + 14, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
-        if (_distanceDisplayMode != :bonus) {
-            drawGoalProgressBar(dc, distanceBottom, _distanceTargetMeters, _remainingMeters);
-        }
+        drawGoalProgressBar(dc, distanceBottom, _distanceTargetMeters, _remainingMeters,
+            _distanceDisplayMode == :bonus);
 
         var etaForeground = etaBackground == Graphics.COLOR_GREEN ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE;
         dc.setColor(etaForeground, etaBackground);
@@ -207,14 +206,13 @@ class CyclingGoalsView extends WatchUi.DataField {
                 + (_elevationWeekdayLimitApplied && _elevationDisplayMode != :bonus ? "*" : ""),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(x, elevationCenter + 14, Graphics.FONT_SMALL, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
-        if (_elevationDisplayMode != :bonus) {
-            drawGoalProgressBar(dc, dc.getHeight(), _elevationTargetMeters,
-                _remainingElevationMeters);
-        }
+        drawGoalProgressBar(dc, dc.getHeight(), _elevationTargetMeters,
+            _remainingElevationMeters, _elevationDisplayMode == :bonus);
     }
 
     private function drawGoalProgressBar(dc as Graphics.Dc, bottom as Lang.Number,
-            target as Lang.Numeric, remaining as Lang.Numeric) as Void {
+            target as Lang.Numeric, remaining as Lang.Numeric,
+            isBonus as Lang.Boolean) as Void {
         var segments = 7;
         var sideMargin = 24;
         var gap = 5;
@@ -224,31 +222,49 @@ class CyclingGoalsView extends WatchUi.DataField {
         var completedFraction = target <= 0
             ? 1.0
             : (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        var completedFourteenths = (completedFraction * 14).toNumber();
-        if (completedFourteenths < 0) { completedFourteenths = 0; }
-        if (completedFourteenths > 14) { completedFourteenths = 14; }
+        var completedFourteenths = completedFraction * 14.0;
+        if (completedFourteenths < 0) { completedFourteenths = 0.0; }
+        if (completedFourteenths > 14) { completedFourteenths = 14.0; }
         var y = bottom - 12;
         for (var segment = 0; segment < segments; segment += 1) {
             var left = sideMargin + segment * (segmentWidth + gap);
             if (segment == 3) {
                 var halfWidth = ((segmentWidth - gap) / 2).toNumber();
                 var secondHalfWidth = segmentWidth - gap - halfWidth;
-                var firstHalfColor = completedFourteenths >= 7
-                    ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
-                var secondHalfColor = completedFourteenths >= 8
-                    ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
-                dc.setColor(firstHalfColor, firstHalfColor);
-                dc.fillRectangle(left, y, halfWidth, barHeight);
-                dc.setColor(secondHalfColor, secondHalfColor);
-                dc.fillRectangle(left + halfWidth + gap, y, secondHalfWidth, barHeight);
+                var firstHalfColor = progressDashColor(
+                    completedFourteenths, 6.0, 7.0, isBonus);
+                var secondHalfColor = progressDashColor(
+                    completedFourteenths, 7.0, 8.0, isBonus);
+                drawProgressDash(dc, left, y, halfWidth, barHeight,
+                    firstHalfColor, isBonus);
+                drawProgressDash(dc, left + halfWidth + gap, y, secondHalfWidth,
+                    barHeight, secondHalfColor, isBonus);
             } else {
-                var completionThreshold = (segment + 1) * 2;
-                var color = completedFourteenths >= completionThreshold
-                    ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
-                dc.setColor(color, color);
-                dc.fillRectangle(left, y, segmentWidth, barHeight);
+                var start = segment * 2.0;
+                var end = (segment + 1) * 2.0;
+                var color = progressDashColor(completedFourteenths, start, end, isBonus);
+                drawProgressDash(dc, left, y, segmentWidth, barHeight, color, isBonus);
             }
         }
+    }
+
+    private function drawProgressDash(dc as Graphics.Dc, left as Lang.Number,
+            top as Lang.Number, width as Lang.Number, height as Lang.Number,
+            color as Graphics.ColorType, isBonus as Lang.Boolean) as Void {
+        if (isBonus) {
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            dc.fillRectangle(left - 1, top - 1, width + 2, height + 2);
+        }
+        dc.setColor(color, color);
+        dc.fillRectangle(left, top, width, height);
+    }
+
+    private function progressDashColor(progress as Lang.Numeric, start as Lang.Numeric,
+            end as Lang.Numeric, isBonus as Lang.Boolean) as Graphics.ColorType {
+        if (progress >= end) { return Graphics.COLOR_GREEN; }
+        if (isBonus) { return Graphics.COLOR_BLUE; }
+        var halfway = start.toFloat() + ((end.toFloat() - start.toFloat()) / 2.0);
+        return progress >= halfway ? Graphics.COLOR_YELLOW : Graphics.COLOR_RED;
     }
 
     private function progressColor(target as Lang.Numeric, remaining as Lang.Numeric) as Graphics.ColorType {
