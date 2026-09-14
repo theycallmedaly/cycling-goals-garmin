@@ -29,6 +29,7 @@ const DEFAULT_REST_WEEKDAYS = 1;
 const DEFAULT_LONG_DAYS = 1;
 const DEFAULT_LONG_DAY_DISTANCE_METERS = 120700.8;
 const DEFAULT_LONG_DAY_ELEVATION_METERS = 1371.6;
+const DEFAULT_WEEKDAY_ELEVATION_LIMIT_METERS = DEFAULT_DAILY_ELEVATION_METERS * 2;
 
 class GoalStore {
     static function hasGoals() as Lang.Boolean {
@@ -146,11 +147,16 @@ class GoalStore {
     }
 
     static function getWeekdayElevationLimit() as Lang.Numeric or Null {
-        return Application.Storage.getValue(WEEKDAY_ELEVATION_LIMIT_KEY);
+        var stored = Application.Storage.getValue(WEEKDAY_ELEVATION_LIMIT_KEY);
+        if (stored == null) { return DEFAULT_WEEKDAY_ELEVATION_LIMIT_METERS; }
+        return stored <= 0 ? null : stored;
     }
 
     static function saveWeekdayElevationLimit(meters as Lang.Numeric or Null) as Void {
-        saveOptionalGoal(WEEKDAY_ELEVATION_LIMIT_KEY, meters);
+        // Zero distinguishes an explicit NO LIMIT choice from a fresh install,
+        // which receives twice the default daily elevation goal.
+        Application.Storage.setValue(WEEKDAY_ELEVATION_LIMIT_KEY,
+            meters == null ? 0.0 : meters);
     }
 
     static function alertEnabled(kind as Lang.Symbol) as Lang.Boolean {

@@ -10,7 +10,7 @@ The automatic target for today is the largest of the daily averages required to 
 
 The schedule defaults to one flexible rest weekday and one Saturday long day per calendar week. Rest weekdays reduce the number of weekday ride slots used to distribute the remaining distance; after the available weekday slots have been ridden, another weekday becomes a zero-distance and zero-elevation rest day. Long-day distance and elevation goals default to 75 miles and 4,500 feet and can be changed independently in Settings. A second configured long day uses Sunday. Setting all five weekdays as rest days moves the distance calculation entirely onto weekend days.
 
-Optional weekday distance and elevation limits cap an automatically calculated weekday target. When a cap is active, the displayed remaining value includes an asterisk. Distance that cannot fit under a weekday limit is allocated to the remaining weekend targets. A same-day custom distance override is not capped.
+Weekday distance and elevation limits cap an automatically calculated weekday target. The elevation limit defaults to twice the base daily elevation goal—2,740 feet with the 1,370-foot default; either limit can be set to `NO LIMIT`. When a cap is active, the displayed remaining value includes an asterisk. Distance that cannot fit under a weekday limit is allocated to the remaining weekend targets. A same-day custom distance override is not capped.
 
 On Sunday, the default includes all distance still required to close the weekly goal. If Sunday falls within the final five calendar days of the month, it also includes all distance required to close the monthly goal. Because a ride counts toward both periods, the larger remainder is used rather than adding them.
 
