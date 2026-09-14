@@ -235,17 +235,32 @@ class CyclingGoalsView extends WatchUi.DataField {
                     completedFourteenths, 6.0, 7.0, isBonus);
                 var secondHalfColor = progressDashColor(
                     completedFourteenths, 7.0, 8.0, isBonus);
-                drawProgressDash(dc, left, y, halfWidth, barHeight,
+                var firstHalfHeight = progressDashHeight(
+                    completedFourteenths, 6.0, 7.0, barHeight);
+                var secondHalfHeight = progressDashHeight(
+                    completedFourteenths, 7.0, 8.0, barHeight);
+                drawProgressDash(dc, left,
+                    y - (firstHalfHeight - barHeight), halfWidth, firstHalfHeight,
                     firstHalfColor, isBonus);
-                drawProgressDash(dc, left + halfWidth + gap, y, secondHalfWidth,
-                    barHeight, secondHalfColor, isBonus);
+                drawProgressDash(dc, left + halfWidth + gap,
+                    y - (secondHalfHeight - barHeight), secondHalfWidth,
+                    secondHalfHeight, secondHalfColor, isBonus);
             } else {
                 var start = segment * 2.0;
                 var end = (segment + 1) * 2.0;
                 var color = progressDashColor(completedFourteenths, start, end, isBonus);
-                drawProgressDash(dc, left, y, segmentWidth, barHeight, color, isBonus);
+                var height = progressDashHeight(
+                    completedFourteenths, start, end, barHeight);
+                drawProgressDash(dc, left, y - (height - barHeight),
+                    segmentWidth, height, color, isBonus);
             }
         }
+    }
+
+    private function progressDashHeight(progress as Lang.Numeric,
+            start as Lang.Numeric, end as Lang.Numeric,
+            baseHeight as Lang.Number) as Lang.Number {
+        return progress >= start && progress < end ? baseHeight * 2 : baseHeight;
     }
 
     private function drawProgressDash(dc as Graphics.Dc, left as Lang.Number,
