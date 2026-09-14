@@ -76,6 +76,15 @@ class GoalPicker extends WatchUi.Picker {
         });
     }
 
+    function onUpdate(dc as Graphics.Dc) as Void {
+        // Edge devices can retain the previously selected text while the
+        // native picker advances. Clear first so every arrow press visibly
+        // replaces the value that Picker.onUpdate() draws.
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
+        Picker.onUpdate(dc);
+    }
+
     private function goalForKind(kind as Lang.Symbol) as Lang.Number {
         if (kind == :rest_weekdays) { return GoalStore.getRestWeekdays(); }
         if (kind == :long_days) { return GoalStore.getLongDays(); }
