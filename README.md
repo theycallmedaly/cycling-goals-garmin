@@ -22,6 +22,12 @@ On supported color devices, the distance and elevation sections remain black so 
 
 The display also estimates the time needed to complete the remaining distance. It uses the ride average until five miles of data are available, then uses a rolling average of the most recent five miles. Paused time is excluded. The estimate appears in `00H:00M` format. After a 15-minute measuring period, the center section compares projected completion time with 15 minutes earlier: green and `AHEAD`, black and `ON PACE`, or red and `BEHIND`.
 
+Before a ride starts, the center section shows the rider's consecutive-day ride
+streak. Any cycling activity counts, regardless of its distance or duration, and
+multiple rides on one calendar day count once. Missing a day resets the streak.
+Once a ride begins, streaks of at least two days remain visible while the ETA is
+measuring; the normal ETA display takes over when a pace result is available.
+
 After the required daily distance is complete, the field offers an optional bonus goal. The default bonus is half of the day's original automatic distance target; the rider can instead configure a fixed Bonus Distance in Settings. Accepting the prompt replaces the required distance with a bonus countdown, credits any overshoot toward it, and uses a green-only distance section without status rails. Each time a bonus block is completed, the rider may accept another block of the same size. The loop ends when the rider selects No or stops the ride.
 
 Completing an accepted distance or elevation bonus block shows the corresponding full-screen completion artwork labeled `BONUS COMPLETE` and plays the success tone when Bonus Complete and Sound alerts are enabled.

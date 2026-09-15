@@ -43,6 +43,8 @@ class CyclingGoalsView extends WatchUi.DataField {
     private var _elevationWeekdayLimitApplied as Lang.Boolean = false;
     private var _screenWidth as Lang.Number = 246;
     private var _configured as Lang.Boolean = false;
+    private var _rideStreakCount as Lang.Number = 0;
+    private var _showRideStreak as Lang.Boolean = true;
 
     function initialize() {
         DataField.initialize();
@@ -120,6 +122,9 @@ class CyclingGoalsView extends WatchUi.DataField {
             _etaTrendState = :measuring;
             _etaTrendMinutes = 0;
         }
+        _rideStreakCount = RideStreakCalculator.count(_sawActiveTimer);
+        _showRideStreak = RideStreakCalculator.shouldDisplay(
+            _sawActiveTimer, _etaTrendState, _rideStreakCount);
         return DistanceUnits.fromMeters(_remainingMeters);
     }
 
@@ -146,7 +151,7 @@ class CyclingGoalsView extends WatchUi.DataField {
         }
         var distanceStatus = progressColor(_distanceTargetMeters, _remainingMeters);
         var elevationStatus = progressColor(_elevationTargetMeters, _remainingElevationMeters);
-        var etaBackground = etaColor(_etaTrendState);
+        var etaBackground = _showRideStreak ? Graphics.COLOR_BLACK : etaColor(_etaTrendState);
         var distanceBottom = (dc.getHeight() * 37) / 100;
         var etaBottom = (dc.getHeight() * 63) / 100;
         var distanceBackground = _distanceDisplayMode == :bonus
@@ -187,12 +192,32 @@ class CyclingGoalsView extends WatchUi.DataField {
         var etaForeground = etaBackground == Graphics.COLOR_GREEN ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE;
         dc.setColor(etaForeground, etaBackground);
         dc.drawLine(24, distanceBottom, dc.getWidth() - 24, distanceBottom);
-        var etaValueX = (dc.getWidth() * 33) / 100;
-        var etaTrendX = (dc.getWidth() * 83) / 100;
-        dc.drawText(etaValueX, distanceBottom + 8, Graphics.FONT_XTINY, "DIST. ETA", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(etaValueX, etaCenter + 3, Graphics.FONT_NUMBER_MEDIUM, _etaText,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        drawEtaTrend(dc, etaTrendX, etaCenter);
+        if (_showRideStreak) {
+            var streakLabelFont = Graphics.FONT_TINY;
+            var streakNumberFont = Graphics.FONT_NUMBER_THAI_HOT;
+            var streakTop = distanceBottom + 2;
+            var streakBottom = etaBottom - 3;
+            var labelHeight = dc.getFontHeight(streakLabelFont);
+            var numberHeight = dc.getFontHeight(streakNumberFont);
+            var freeHeight = streakBottom - streakTop - labelHeight - numberHeight;
+            var verticalGap = freeHeight > 0 ? freeHeight / 3 : 0;
+            var labelCenter = streakTop + verticalGap + (labelHeight / 2);
+            var numberCenter = labelCenter + (labelHeight / 2)
+                + verticalGap + (numberHeight / 2);
+            dc.drawText(x, labelCenter, streakLabelFont, "RIDE STREAK",
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.drawText(x, numberCenter, streakNumberFont,
+                _rideStreakCount.toString(),
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        } else {
+            var etaValueX = (dc.getWidth() * 33) / 100;
+            var etaTrendX = (dc.getWidth() * 83) / 100;
+            dc.drawText(etaValueX, distanceBottom + 8, Graphics.FONT_XTINY,
+                "DIST. ETA", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(etaValueX, etaCenter + 3, Graphics.FONT_NUMBER_MEDIUM,
+                _etaText, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            drawEtaTrend(dc, etaTrendX, etaCenter);
+        }
         dc.drawLine(24, etaBottom, dc.getWidth() - 24, etaBottom);
 
         dc.setColor(_elevationDisplayMode == :bonus ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE,
