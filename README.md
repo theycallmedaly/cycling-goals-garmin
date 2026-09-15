@@ -48,7 +48,7 @@ MILES or KM
 FT or M
 ```
 
-If goals are missing, the data field directs the rider to its standard Settings screen. The settings use a native touch menu for daily distance and elevation, rest weekdays, long days, weekday limits, bonus goals, and weekly, monthly, and yearly distance. Daily distance is automatic unless the rider creates a same-day override. Bonus Distance defaults to `AUTO` (50% of the original automatic daily target) but may be set to a fixed distance. Schedule counts, limits, the daily elevation goal, and weekly, monthly, and yearly distance goals persist.
+If goals are missing, the data field directs the rider to its standard Settings screen. The native menu groups annual, monthly, weekly, daily, long-day, and bonus targets under Goals; rest days, long-day counts, and weekday limits under Habits; alert toggles under Alerts; and developer/version information under About. Daily distance is automatic unless the rider creates a same-day override. Bonus Distance defaults to `AUTO` (50% of the original automatic daily target) but may be set to a fixed distance. Schedule counts, limits, the daily elevation goal, and weekly, monthly, and yearly distance goals persist.
 
 First-time defaults are 100 miles weekly, 500 miles monthly, and 7,000 miles yearly. They are converted for display when the device uses metric units. Goal editing uses Garmin's native picker so values redraw reliably and inherit the device's standard touch behavior.
 

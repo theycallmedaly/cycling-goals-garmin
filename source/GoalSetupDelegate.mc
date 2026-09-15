@@ -19,11 +19,21 @@ class SettingsDelegate extends WatchUi.Menu2InputDelegate {
         var kind = item.getId() as Lang.Symbol;
         if (kind == :goals) {
             WatchUi.pushView(GoalSetupView.createMenu(), new GoalSetupDelegate(), WatchUi.SLIDE_UP);
+        } else if (kind == :habits) {
+            WatchUi.pushView(HabitSettingsView.createMenu(),
+                new GoalSetupDelegate(), WatchUi.SLIDE_UP);
         } else if (kind == :alerts) {
             var menu = AlertSettingsView.createMenu();
             WatchUi.pushView(menu, new AlertSettingsDelegate(menu), WatchUi.SLIDE_UP);
+        } else if (kind == :about) {
+            WatchUi.pushView(AboutSettingsView.createMenu(),
+                new AboutSettingsDelegate(), WatchUi.SLIDE_UP);
         }
     }
+}
+
+class AboutSettingsDelegate extends WatchUi.Menu2InputDelegate {
+    function initialize() { Menu2InputDelegate.initialize(); }
 }
 
 class GoalPickerDelegate extends WatchUi.PickerDelegate {

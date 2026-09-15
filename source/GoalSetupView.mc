@@ -5,35 +5,71 @@ using Toybox.WatchUi;
 class GoalSetupView {
     static function createMenu() as WatchUi.Menu2 {
         var menu = new WatchUi.Menu2({:title=>"GOALS"});
-        var longDistanceText = DistanceUnits.fromMeters(
-            GoalStore.getLongDayDistanceGoal()).format("%.0f") + " " + DistanceUnits.label();
-        var longElevationText = ElevationUnits.fromMeters(
-            GoalStore.getLongDayElevationGoal()).format("%.0f") + " " + ElevationUnits.label();
+        var goals = GoalStore.getGoals();
+        var daily = GoalStore.getDailyOverride(GoalDate.todayKey());
+        var dailyText = daily == null ? "AUTO based on larger goals"
+            : distanceText(daily);
+        menu.addItem(new WatchUi.MenuItem("Yearly Distance",
+            distanceText(goals[0]), :yearly, {}));
+        menu.addItem(new WatchUi.MenuItem("Monthly Distance",
+            distanceText(goals[1]), :monthly, {}));
+        menu.addItem(new WatchUi.MenuItem("Weekly Distance",
+            distanceText(goals[2]), :weekly, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily Distance", dailyText, :daily, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily Elevation",
+            elevationText(GoalStore.getDailyElevationGoal()), :daily_elevation, {}));
+        menu.addItem(new WatchUi.MenuItem("Long Day Distance",
+            distanceText(GoalStore.getLongDayDistanceGoal()), :long_day_distance, {}));
+        menu.addItem(new WatchUi.MenuItem("Long Day Elevation",
+            elevationText(GoalStore.getLongDayElevationGoal()), :long_day_elevation, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily Bonus Distance",
+            "Auto: 50% of daily", :bonus, {}));
+        menu.addItem(new WatchUi.MenuItem("Daily Bonus Elevation",
+            "Auto: daily elevation", :bonus_elevation, {}));
+        return menu;
+    }
+
+    private static function distanceText(meters as Lang.Numeric) as Lang.String {
+        return DistanceUnits.fromMeters(meters).format("%.0f")
+            + " " + DistanceUnits.label();
+    }
+
+    private static function elevationText(meters as Lang.Numeric) as Lang.String {
+        return ElevationUnits.fromMeters(meters).format("%.0f")
+            + " " + ElevationUnits.label();
+    }
+}
+
+class HabitSettingsView {
+    static function createMenu() as WatchUi.Menu2 {
+        var menu = new WatchUi.Menu2({:title=>"HABITS"});
         var distanceLimit = GoalStore.getWeekdayDistanceLimit();
         var distanceLimitText = distanceLimit == null ? "NO LIMIT"
-            : DistanceUnits.fromMeters(distanceLimit).format("%.0f") + " " + DistanceUnits.label();
+            : DistanceUnits.fromMeters(distanceLimit).format("%.0f")
+                + " " + DistanceUnits.label();
         var elevationLimit = GoalStore.getWeekdayElevationLimit();
         var elevationLimitText = elevationLimit == null ? "NO LIMIT"
-            : ElevationUnits.fromMeters(elevationLimit).format("%.0f") + " " + ElevationUnits.label();
-        menu.addItem(new WatchUi.MenuItem("Daily distance", "Auto or custom", :daily, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily elevation", "Current ride only", :daily_elevation, {}));
+            : ElevationUnits.fromMeters(elevationLimit).format("%.0f")
+                + " " + ElevationUnits.label();
         menu.addItem(new WatchUi.MenuItem("Number of Rest Weekdays",
             GoalStore.getRestWeekdays().toString(), :rest_weekdays, {}));
         menu.addItem(new WatchUi.MenuItem("Number of Long Days",
             GoalStore.getLongDays().toString(), :long_days, {}));
-        menu.addItem(new WatchUi.MenuItem("Long Day Distance", longDistanceText,
-            :long_day_distance, {}));
-        menu.addItem(new WatchUi.MenuItem("Long Day Elevation", longElevationText,
-            :long_day_elevation, {}));
-        menu.addItem(new WatchUi.MenuItem("Weekday Distance Limit", distanceLimitText,
-            :weekday_distance_limit, {}));
-        menu.addItem(new WatchUi.MenuItem("Weekday Elevation Limit", elevationLimitText,
-            :weekday_elevation_limit, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily Bonus Distance", "Auto: 50% of daily", :bonus, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily Bonus Elevation", "Auto: daily elevation", :bonus_elevation, {}));
-        menu.addItem(new WatchUi.MenuItem("Weekly distance", null, :weekly, {}));
-        menu.addItem(new WatchUi.MenuItem("Monthly distance", null, :monthly, {}));
-        menu.addItem(new WatchUi.MenuItem("Yearly distance", null, :yearly, {}));
+        menu.addItem(new WatchUi.MenuItem("Weekday Distance Limit",
+            distanceLimitText, :weekday_distance_limit, {}));
+        menu.addItem(new WatchUi.MenuItem("Weekday Elevation Limit",
+            elevationLimitText, :weekday_elevation_limit, {}));
+        return menu;
+    }
+}
+
+class AboutSettingsView {
+    static function createMenu() as WatchUi.Menu2 {
+        var menu = new WatchUi.Menu2({:title=>"ABOUT"});
+        menu.addItem(new WatchUi.MenuItem("Developer", "Aaron Daly",
+            :developer, {}));
+        menu.addItem(new WatchUi.MenuItem("Version", "0.1.0",
+            :version, {}));
         return menu;
     }
 }
@@ -42,7 +78,9 @@ class SettingsView {
     static function createMenu() as WatchUi.Menu2 {
         var menu = new WatchUi.Menu2({:title=>"SETTINGS"});
         menu.addItem(new WatchUi.MenuItem("Goals", null, :goals, {}));
+        menu.addItem(new WatchUi.MenuItem("Habits", null, :habits, {}));
         menu.addItem(new WatchUi.MenuItem("Alerts", null, :alerts, {}));
+        menu.addItem(new WatchUi.MenuItem("About", null, :about, {}));
         return menu;
     }
 }
