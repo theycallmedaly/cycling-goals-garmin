@@ -2,17 +2,12 @@ using Toybox.Activity;
 using Toybox.Lang;
 using Toybox.Time;
 using Toybox.Time.Gregorian;
-using Toybox.UserProfile;
 
 class RideStreakCalculator {
     static function count(activeRideToday as Lang.Boolean) as Lang.Number {
-        var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        return countFrom(UserProfile.getUserActivityHistory(), today, activeRideToday);
-    }
-
-    static function countFrom(iterator, today as Gregorian.Info,
-            activeRideToday as Lang.Boolean) as Lang.Number {
+        var today = Gregorian.info(GoalRuntime.now(), Time.FORMAT_SHORT);
         var riddenAges = [];
+        var iterator = GoalRuntime.activityHistoryIterator();
         var item = iterator.next();
         while (item != null) {
             if (item.startTime != null && item.type == Activity.SPORT_CYCLING) {

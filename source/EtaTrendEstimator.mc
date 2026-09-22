@@ -13,10 +13,12 @@ class EtaTrendEstimator {
         _projectedFinishTimes = [];
     }
 
-    // Returns [state, minutes], where state is :measuring, :ahead, :on_pace, or :behind.
+    // Returns the trend and difference in minutes as named state.
     function update(timerMilliseconds as Lang.Numeric, remainingMeters as Lang.Numeric,
-            speedMps as Lang.Numeric or Null) as Lang.Array {
-        if (speedMps == null || speedMps <= 0) { return [:measuring, 0]; }
+            speedMps as Lang.Numeric or Null) as EtaTrendState {
+        if (speedMps == null || speedMps <= 0) {
+            return new EtaTrendState(:measuring, 0);
+        }
 
         var timer = timerMilliseconds.toNumber();
         if (_timerTimes.size() > 0 && timer < _timerTimes[_timerTimes.size() - 1]) { reset(); }
@@ -35,7 +37,7 @@ class EtaTrendEstimator {
                 break;
             }
         }
-        if (comparisonIndex < 0) { return [:measuring, 0]; }
+        if (comparisonIndex < 0) { return new EtaTrendState(:measuring, 0); }
 
         while (comparisonIndex > 0) {
             _timerTimes.remove(_timerTimes[0]);
@@ -45,9 +47,13 @@ class EtaTrendEstimator {
 
         var difference = _projectedFinishTimes[0] - projected;
         var minutes = ((difference.abs().toFloat() / 60000.0) + 0.5).toNumber();
-        if (difference > ETA_TREND_TOLERANCE_MS) { return [:ahead, minutes]; }
-        if (difference < -ETA_TREND_TOLERANCE_MS) { return [:behind, minutes]; }
-        return [:on_pace, 0];
+        if (difference > ETA_TREND_TOLERANCE_MS) {
+            return new EtaTrendState(:ahead, minutes);
+        }
+        if (difference < -ETA_TREND_TOLERANCE_MS) {
+            return new EtaTrendState(:behind, minutes);
+        }
+        return new EtaTrendState(:on_pace, 0);
     }
 
     private function reset() as Void {

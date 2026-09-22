@@ -1,394 +1,120 @@
 using Toybox.Activity;
-using Toybox.Application;
 using Toybox.Attention;
 using Toybox.Graphics;
 using Toybox.Lang;
 using Toybox.WatchUi;
 
 class CyclingGoalsView extends WatchUi.DataField {
-    private var _remainingMeters as Lang.Float = 0.0;
-    private var _distanceTargetMeters as Lang.Float = 0.0;
-    private var _remainingElevationMeters as Lang.Float = 0.0;
-    private var _elevationTargetMeters as Lang.Float = 0.0;
-    private var _elevationDisplayMode as Lang.Symbol = :required;
-    private var _bonusElevationTargetMeters as Lang.Float = 0.0;
-    private var _requiredElevationTargetMeters as Lang.Float = 0.0;
-    private var _completedElevationMeters as Lang.Float = 0.0;
     private var _recentPace as RecentPaceEstimator;
     private var _etaTrend as EtaTrendEstimator;
-    private var _etaText as Lang.String = "--H:--M";
-    private var _etaTrendState as Lang.Symbol = :measuring;
-    private var _etaTrendMinutes as Lang.Number = 0;
-    private var _distanceDisplayMode as Lang.Symbol = :required;
-    private var _bonusTargetMeters as Lang.Float = 0.0;
-    private var _requiredTargetMeters as Lang.Float = 0.0;
-    private var _completedTodayMeters as Lang.Float = 0.0;
-    private var _bonusRoundsAccepted as Lang.Number = 0;
-    private var _bonusOfferDeclined as Lang.Boolean = false;
-    private var _elevationBonusRoundsAccepted as Lang.Number = 0;
-    private var _elevationBonusOfferDeclined as Lang.Boolean = false;
+    private var _distanceRideGoal as RideGoalState;
+    private var _elevationRideGoal as RideGoalState;
+    private var _distanceMilestones as MilestoneTracker;
+    private var _elevationMilestones as MilestoneTracker;
     private var _distanceBonusRoundsAlerted as Lang.Number = 0;
     private var _elevationBonusRoundsAlerted as Lang.Number = 0;
     private var _rideEnded as Lang.Boolean = false;
     private var _sawActiveTimer as Lang.Boolean = false;
     private var _lastRideDistance as Lang.Float = -1.0;
     private var _lastTimerTime as Lang.Number = -1;
-    private var _lastDistanceFraction as Lang.Float = -1.0;
-    private var _distanceHalfwayAlerted as Lang.Boolean = false;
-    private var _distanceCompleteAlerted as Lang.Boolean = false;
-    private var _lastElevationFraction as Lang.Float = -1.0;
-    private var _elevationHalfwayAlerted as Lang.Boolean = false;
-    private var _elevationCompleteAlerted as Lang.Boolean = false;
-    private var _distanceWeekdayLimitApplied as Lang.Boolean = false;
-    private var _elevationWeekdayLimitApplied as Lang.Boolean = false;
     private var _screenWidth as Lang.Number = 246;
-    private var _configured as Lang.Boolean = false;
-    private var _rideStreakCount as Lang.Number = 0;
-    private var _showRideStreak as Lang.Boolean = true;
+    private var _screenState as CyclingGoalsScreenState;
+    private var _renderer as CyclingGoalsRenderer;
 
     function initialize() {
         DataField.initialize();
         _recentPace = new RecentPaceEstimator();
         _etaTrend = new EtaTrendEstimator();
+        _distanceRideGoal = new RideGoalState();
+        _elevationRideGoal = new RideGoalState();
+        _distanceMilestones = new MilestoneTracker();
+        _elevationMilestones = new MilestoneTracker();
+        _screenState = new CyclingGoalsScreenState(_distanceRideGoal, _elevationRideGoal);
+        _renderer = new CyclingGoalsRenderer();
     }
 
     function compute(info as Activity.Info) {
-        _configured = GoalStore.hasGoals();
-        if (!_configured) { return "SET GOALS"; }
+        _screenState.configured = GoalStore.hasGoals();
+        if (!_screenState.configured) { return "SET GOALS"; }
         updateRideLifecycle(info);
+
         var distanceState = GoalCalculator.distanceStateForToday(info);
-        updateDistanceMilestone(distanceState[0], distanceState[1]);
-        _remainingMeters = distanceState[0];
-        _distanceTargetMeters = distanceState[1];
-        _requiredTargetMeters = distanceState[1];
-        _completedTodayMeters = distanceState[2];
-        _distanceWeekdayLimitApplied = distanceState[4] > 0;
-        _distanceDisplayMode = :required;
-        _bonusTargetMeters = GoalCalculator.bonusTarget(
-            distanceState[3], GoalStore.getBonusDistanceGoal());
-        if (_remainingMeters <= 0 && _bonusTargetMeters > 0) {
-            if (_rideEnded || _bonusOfferDeclined) {
-                _distanceDisplayMode = :complete;
-            } else {
-                var bonusProgress = GoalCalculator.bonusProgress(distanceState[1], distanceState[2]);
-                var acceptedBonus = _bonusTargetMeters * _bonusRoundsAccepted;
-                updateDistanceBonusMilestone(bonusProgress);
-                if (_bonusRoundsAccepted == 0 || bonusProgress >= acceptedBonus) {
-                    _distanceDisplayMode = :bonus_prompt;
-                } else {
-                    _distanceDisplayMode = :bonus;
-                    _remainingMeters = acceptedBonus - bonusProgress;
-                    _distanceTargetMeters = _bonusTargetMeters;
-                }
-            }
+        var distanceEvent = _distanceMilestones.update(
+            distanceState.remainingMeters, distanceState.targetMeters,
+            GoalStore.alertEnabled(:halfway), GoalStore.alertEnabled(:goal));
+        showRequiredMilestone(distanceEvent, false, distanceState.remainingMeters);
+        _screenState.distanceWeekdayLimitApplied = distanceState.weekdayLimitApplied;
+        var distanceBonusTarget = GoalCalculator.bonusTarget(
+            distanceState.automaticTargetMeters, GoalStore.getBonusDistanceGoal());
+        _distanceRideGoal.update(distanceState.remainingMeters, distanceState.targetMeters,
+            distanceState.completedTodayMeters, distanceBonusTarget, _rideEnded);
+        if (isBonusActive(_distanceRideGoal)) {
+            updateBonusMilestone(_distanceRideGoal.bonusProgressMeters,
+                _distanceRideGoal, false);
         }
-        var elevationState = GoalCalculator.elevationStateForToday(info, distanceState[5] > 0);
-        updateElevationMilestone(elevationState[0], elevationState[1]);
-        _remainingElevationMeters = elevationState[0];
-        _elevationTargetMeters = elevationState[1];
-        _requiredElevationTargetMeters = elevationState[1];
-        _completedElevationMeters = info.totalAscent == null ? 0.0 : info.totalAscent.toFloat();
-        _elevationWeekdayLimitApplied = elevationState[2] > 0;
-        _elevationDisplayMode = :required;
-        _bonusElevationTargetMeters = GoalCalculator.elevationBonusTarget(
-            elevationState[1], GoalStore.getBonusElevationGoal());
-        if (_remainingElevationMeters <= 0 && _bonusElevationTargetMeters > 0) {
-            if (_rideEnded || _elevationBonusOfferDeclined) {
-                _elevationDisplayMode = :complete;
-            } else {
-                var elevationBonusProgress = GoalCalculator.bonusProgress(
-                    _requiredElevationTargetMeters, _completedElevationMeters);
-                var acceptedElevationBonus = _bonusElevationTargetMeters
-                    * _elevationBonusRoundsAccepted;
-                updateElevationBonusMilestone(elevationBonusProgress);
-                if (_elevationBonusRoundsAccepted == 0
-                        || elevationBonusProgress >= acceptedElevationBonus) {
-                    _elevationDisplayMode = :bonus_prompt;
-                } else {
-                    _elevationDisplayMode = :bonus;
-                    _remainingElevationMeters = acceptedElevationBonus - elevationBonusProgress;
-                    _elevationTargetMeters = _bonusElevationTargetMeters;
-                }
-            }
+
+        var elevationState = GoalCalculator.elevationStateForToday(
+            info, distanceState.availableToday);
+        var elevationEvent = _elevationMilestones.update(
+            elevationState.remainingMeters, elevationState.targetMeters,
+            GoalStore.alertEnabled(:halfway), GoalStore.alertEnabled(:goal));
+        showRequiredMilestone(elevationEvent, true, elevationState.remainingMeters);
+        _screenState.elevationWeekdayLimitApplied = elevationState.weekdayLimitApplied;
+        var completedElevation = info.totalAscent == null ? 0.0 : info.totalAscent.toFloat();
+        var elevationBonusTarget = GoalCalculator.elevationBonusTarget(
+            elevationState.targetMeters, GoalStore.getBonusElevationGoal());
+        _elevationRideGoal.update(elevationState.remainingMeters, elevationState.targetMeters,
+            completedElevation, elevationBonusTarget, _rideEnded);
+        if (isBonusActive(_elevationRideGoal)) {
+            updateBonusMilestone(_elevationRideGoal.bonusProgressMeters,
+                _elevationRideGoal, true);
         }
-        if (info.elapsedDistance != null && info.timerTime != null) {
-            var speed = _recentPace.update(info.elapsedDistance, info.timerTime, info.averageSpeed);
-            _etaText = RecentPaceEstimator.formatEta(_remainingMeters, speed);
-            var trend = _etaTrend.update(info.timerTime, _remainingMeters, speed);
-            _etaTrendState = trend[0];
-            _etaTrendMinutes = trend[1] as Lang.Number;
-        } else {
-            _etaText = RecentPaceEstimator.formatEta(_remainingMeters, info.averageSpeed);
-            _etaTrendState = :measuring;
-            _etaTrendMinutes = 0;
-        }
-        _rideStreakCount = RideStreakCalculator.count(_sawActiveTimer);
-        _showRideStreak = RideStreakCalculator.shouldDisplay(
-            _sawActiveTimer, _etaTrendState, _rideStreakCount);
-        return DistanceUnits.fromMeters(_remainingMeters);
+
+        updateEta(info);
+        _screenState.rideStreakCount = RideStreakCalculator.count(_sawActiveTimer);
+        _screenState.showRideStreak = RideStreakCalculator.shouldDisplay(
+            _sawActiveTimer, _screenState.etaTrendState,
+            _screenState.rideStreakCount);
+        return DistanceUnits.fromMeters(_distanceRideGoal.remainingMeters);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
         _screenWidth = dc.getWidth();
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.clear();
-        var x = dc.getWidth() / 2;
-        var y = dc.getHeight() / 2;
-        if (!_configured) {
-            dc.drawText(x, y - 18, Graphics.FONT_SMALL,
-                Application.loadResource(Rez.Strings.NoGoals), Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(x, y + 10, Graphics.FONT_XTINY,
-                Application.loadResource(Rez.Strings.OpenSettings), Graphics.TEXT_JUSTIFY_CENTER);
-            return;
-        }
-        if (_distanceDisplayMode == :bonus_prompt) {
-            drawBonusPrompt(dc, false);
-            return;
-        }
-        if (_elevationDisplayMode == :bonus_prompt) {
-            drawBonusPrompt(dc, true);
-            return;
-        }
-        var distanceStatus = progressColor(_distanceTargetMeters, _remainingMeters);
-        var elevationStatus = progressColor(_elevationTargetMeters, _remainingElevationMeters);
-        var etaBackground = _showRideStreak ? Graphics.COLOR_BLACK : etaColor(_etaTrendState);
-        var distanceBottom = (dc.getHeight() * 37) / 100;
-        var etaBottom = (dc.getHeight() * 63) / 100;
-        var distanceBackground = _distanceDisplayMode == :bonus
-            ? Graphics.COLOR_GREEN : Graphics.COLOR_BLACK;
-        dc.setColor(distanceBackground, distanceBackground);
-        dc.fillRectangle(0, 0, dc.getWidth(), distanceBottom);
-        dc.setColor(etaBackground, etaBackground);
-        dc.fillRectangle(0, distanceBottom, dc.getWidth(), etaBottom - distanceBottom);
-        var elevationBackground = _elevationDisplayMode == :bonus
-            ? Graphics.COLOR_GREEN : Graphics.COLOR_BLACK;
-        dc.setColor(elevationBackground, elevationBackground);
-        dc.fillRectangle(0, etaBottom, dc.getWidth(), dc.getHeight() - etaBottom);
-
-        if (_distanceDisplayMode != :bonus) {
-            drawStatusRails(dc, 0, distanceBottom, distanceStatus);
-        }
-        if (_elevationDisplayMode != :bonus) {
-            drawStatusRails(dc, etaBottom, dc.getHeight(), elevationStatus);
-        }
-
-        dc.setColor(Graphics.COLOR_WHITE, distanceBackground);
-        dc.drawText(x, 4, Graphics.FONT_XTINY,
-            _distanceDisplayMode == :bonus ? "BONUS MILES REMAINING"
-                : Application.loadResource(Rez.Strings.RemainingToday),
-            Graphics.TEXT_JUSTIFY_CENTER);
-        var distanceCenter = (24 + distanceBottom) / 2;
-        var etaCenter = distanceBottom + ((etaBottom - distanceBottom) / 2);
-        var elevationCenter = etaBottom + ((dc.getHeight() - etaBottom) / 2);
-
-        dc.drawText(x, distanceCenter - 12, Graphics.FONT_NUMBER_THAI_HOT,
-            DistanceUnits.fromMeters(_remainingMeters).format("%.2f")
-                + (_distanceWeekdayLimitApplied && _distanceDisplayMode != :bonus ? "*" : ""),
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(x, distanceCenter + 14, Graphics.FONT_SMALL, DistanceUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
-        drawGoalProgressBar(dc, distanceBottom, _distanceTargetMeters, _remainingMeters,
-            _distanceDisplayMode == :bonus);
-
-        var etaForeground = etaBackground == Graphics.COLOR_GREEN ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE;
-        dc.setColor(etaForeground, etaBackground);
-        dc.drawLine(24, distanceBottom, dc.getWidth() - 24, distanceBottom);
-        if (_showRideStreak) {
-            var streakLabelFont = Graphics.FONT_TINY;
-            var streakNumberFont = Graphics.FONT_NUMBER_THAI_HOT;
-            var streakTop = distanceBottom + 2;
-            var streakBottom = etaBottom - 3;
-            var labelHeight = dc.getFontHeight(streakLabelFont);
-            var numberHeight = dc.getFontHeight(streakNumberFont);
-            var freeHeight = streakBottom - streakTop - labelHeight - numberHeight;
-            var verticalGap = freeHeight > 0 ? freeHeight / 3 : 0;
-            var labelCenter = streakTop + verticalGap + (labelHeight / 2);
-            var numberCenter = labelCenter + (labelHeight / 2)
-                + verticalGap + (numberHeight / 2);
-            dc.drawText(x, labelCenter, streakLabelFont, "RIDE STREAK",
-                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-            dc.drawText(x, numberCenter, streakNumberFont,
-                _rideStreakCount.toString(),
-                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        } else {
-            var etaValueX = (dc.getWidth() * 33) / 100;
-            var etaTrendX = (dc.getWidth() * 83) / 100;
-            dc.drawText(etaValueX, distanceBottom + 8, Graphics.FONT_XTINY,
-                "DIST. ETA", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(etaValueX, etaCenter + 3, Graphics.FONT_NUMBER_MEDIUM,
-                _etaText, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-            drawEtaTrend(dc, etaTrendX, etaCenter);
-        }
-        dc.drawLine(24, etaBottom, dc.getWidth() - 24, etaBottom);
-
-        dc.setColor(_elevationDisplayMode == :bonus ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE,
-            elevationBackground);
-        if (_elevationDisplayMode == :bonus) {
-            dc.drawText(x, etaBottom + 3, Graphics.FONT_XTINY,
-                "BONUS ELEVATION REMAINING", Graphics.TEXT_JUSTIFY_CENTER);
-        }
-        dc.drawText(x, elevationCenter - 12, Graphics.FONT_NUMBER_THAI_HOT,
-            ElevationUnits.fromMeters(_remainingElevationMeters).format("%.0f")
-                + (_elevationWeekdayLimitApplied && _elevationDisplayMode != :bonus ? "*" : ""),
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(x, elevationCenter + 14, Graphics.FONT_SMALL, ElevationUnits.label(), Graphics.TEXT_JUSTIFY_CENTER);
-        drawGoalProgressBar(dc, dc.getHeight(), _elevationTargetMeters,
-            _remainingElevationMeters, _elevationDisplayMode == :bonus);
-    }
-
-    private function drawGoalProgressBar(dc as Graphics.Dc, bottom as Lang.Number,
-            target as Lang.Numeric, remaining as Lang.Numeric,
-            isBonus as Lang.Boolean) as Void {
-        var segments = 7;
-        var sideMargin = 24;
-        var gap = 5;
-        var barHeight = 6;
-        var availableWidth = dc.getWidth() - (sideMargin * 2);
-        var segmentWidth = (availableWidth - (gap * (segments - 1))) / segments;
-        var completedFraction = target <= 0
-            ? 1.0
-            : (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        var completedFourteenths = completedFraction * 14.0;
-        if (completedFourteenths < 0) { completedFourteenths = 0.0; }
-        if (completedFourteenths > 14) { completedFourteenths = 14.0; }
-        var y = bottom - 12;
-        for (var segment = 0; segment < segments; segment += 1) {
-            var left = sideMargin + segment * (segmentWidth + gap);
-            if (segment == 3) {
-                var halfWidth = ((segmentWidth - gap) / 2).toNumber();
-                var secondHalfWidth = segmentWidth - gap - halfWidth;
-                var firstHalfColor = progressDashColor(
-                    completedFourteenths, 6.0, 7.0, isBonus);
-                var secondHalfColor = progressDashColor(
-                    completedFourteenths, 7.0, 8.0, isBonus);
-                var firstHalfHeight = progressDashHeight(
-                    completedFourteenths, 6.0, 7.0, barHeight);
-                var secondHalfHeight = progressDashHeight(
-                    completedFourteenths, 7.0, 8.0, barHeight);
-                drawProgressDash(dc, left,
-                    y - (firstHalfHeight - barHeight), halfWidth, firstHalfHeight,
-                    firstHalfColor, isBonus);
-                drawProgressDash(dc, left + halfWidth + gap,
-                    y - (secondHalfHeight - barHeight), secondHalfWidth,
-                    secondHalfHeight, secondHalfColor, isBonus);
-            } else {
-                var start = segment * 2.0;
-                var end = (segment + 1) * 2.0;
-                var color = progressDashColor(completedFourteenths, start, end, isBonus);
-                var height = progressDashHeight(
-                    completedFourteenths, start, end, barHeight);
-                drawProgressDash(dc, left, y - (height - barHeight),
-                    segmentWidth, height, color, isBonus);
-            }
-        }
-    }
-
-    private function progressDashHeight(progress as Lang.Numeric,
-            start as Lang.Numeric, end as Lang.Numeric,
-            baseHeight as Lang.Number) as Lang.Number {
-        return progress >= start && progress < end ? baseHeight * 2 : baseHeight;
-    }
-
-    private function drawProgressDash(dc as Graphics.Dc, left as Lang.Number,
-            top as Lang.Number, width as Lang.Number, height as Lang.Number,
-            color as Graphics.ColorType, isBonus as Lang.Boolean) as Void {
-        if (isBonus) {
-            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-            dc.fillRectangle(left - 1, top - 1, width + 2, height + 2);
-        }
-        dc.setColor(color, color);
-        dc.fillRectangle(left, top, width, height);
-    }
-
-    private function progressDashColor(progress as Lang.Numeric, start as Lang.Numeric,
-            end as Lang.Numeric, isBonus as Lang.Boolean) as Graphics.ColorType {
-        if (progress >= end) { return Graphics.COLOR_GREEN; }
-        if (isBonus) { return Graphics.COLOR_BLUE; }
-        var halfway = start.toFloat() + ((end.toFloat() - start.toFloat()) / 2.0);
-        return progress >= halfway ? Graphics.COLOR_YELLOW : Graphics.COLOR_RED;
-    }
-
-    private function progressColor(target as Lang.Numeric, remaining as Lang.Numeric) as Graphics.ColorType {
-        if (target <= 0 || remaining <= 0) { return Graphics.COLOR_GREEN; }
-        var completedFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        return completedFraction < 0.75 ? Graphics.COLOR_RED : Graphics.COLOR_WHITE;
-    }
-
-    private function etaColor(state as Lang.Symbol) as Graphics.ColorType {
-        if (state == :ahead) { return Graphics.COLOR_GREEN; }
-        if (state == :behind) { return Graphics.COLOR_RED; }
-        return Graphics.COLOR_BLACK;
-    }
-
-    private function drawStatusRails(dc as Graphics.Dc, top as Lang.Number, bottom as Lang.Number,
-            color as Graphics.ColorType) as Void {
-        var railWidth = 6;
-        dc.setColor(color, color);
-        dc.fillRectangle(0, top, railWidth, bottom - top);
-        dc.fillRectangle(dc.getWidth() - railWidth, top, railWidth, bottom - top);
+        _renderer.draw(dc, _screenState);
     }
 
     function isBonusPromptVisible() as Lang.Boolean {
-        return _distanceDisplayMode == :bonus_prompt || _elevationDisplayMode == :bonus_prompt;
+        return _distanceRideGoal.displayMode == :bonus_prompt
+            || _elevationRideGoal.displayMode == :bonus_prompt;
     }
 
     function chooseBonusAt(x as Lang.Number) as Void {
         if (!isBonusPromptVisible()) { return; }
         var accepted = x < (_screenWidth / 2);
-        if (_distanceDisplayMode == :bonus_prompt) {
-            _distanceDisplayMode = accepted ? :bonus : :complete;
-            if (accepted) {
-                _bonusRoundsAccepted += 1;
-                _remainingMeters = GoalCalculator.bonusRemainingForRounds(
-                    _requiredTargetMeters, _completedTodayMeters,
-                    _bonusTargetMeters, _bonusRoundsAccepted);
-                _distanceTargetMeters = _bonusTargetMeters;
-            } else {
-                _bonusOfferDeclined = true;
-            }
+        if (_distanceRideGoal.displayMode == :bonus_prompt) {
+            _distanceRideGoal.chooseBonus(accepted);
         } else {
-            _elevationDisplayMode = accepted ? :bonus : :complete;
-            if (accepted) {
-                _elevationBonusRoundsAccepted += 1;
-                _remainingElevationMeters = GoalCalculator.bonusRemainingForRounds(
-                    _requiredElevationTargetMeters, _completedElevationMeters,
-                    _bonusElevationTargetMeters, _elevationBonusRoundsAccepted);
-                _elevationTargetMeters = _bonusElevationTargetMeters;
-            } else {
-                _elevationBonusOfferDeclined = true;
-            }
+            _elevationRideGoal.chooseBonus(accepted);
         }
         WatchUi.requestUpdate();
     }
 
-    private function drawBonusPrompt(dc as Graphics.Dc, isElevation as Lang.Boolean) as Void {
-        var width = dc.getWidth();
-        var height = dc.getHeight();
-        var center = width / 2;
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.clear();
-        var roundsAccepted = isElevation ? _elevationBonusRoundsAccepted : _bonusRoundsAccepted;
-        var target = isElevation ? _bonusElevationTargetMeters : _bonusTargetMeters;
-        var targetText = isElevation
-            ? ElevationUnits.fromMeters(target).format("%.0f") + " " + ElevationUnits.label()
-            : DistanceUnits.fromMeters(target).format("%.0f") + " " + DistanceUnits.label();
-        dc.drawText(center, 22, Graphics.FONT_SMALL,
-            roundsAccepted == 0 ? "TODAY'S GOAL COMPLETE" : "BONUS GOAL COMPLETE",
-            Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(center, 66, Graphics.FONT_MEDIUM,
-            "CHASE " + targetText + (roundsAccepted == 0 ? " BONUS?" : " MORE?"),
-            Graphics.TEXT_JUSTIFY_CENTER);
-
-        var buttonTop = (height * 58) / 100;
-        dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
-        dc.fillRectangle(8, buttonTop, (width / 2) - 12, height - buttonTop - 10);
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_DK_GRAY);
-        dc.fillRectangle((width / 2) + 4, buttonTop, (width / 2) - 12, height - buttonTop - 10);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_GREEN);
-        dc.drawText(width / 4, buttonTop + ((height - buttonTop) / 2) - 10,
-            Graphics.FONT_LARGE, "YES", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_DK_GRAY);
-        dc.drawText((width * 3) / 4, buttonTop + ((height - buttonTop) / 2) - 10,
-            Graphics.FONT_LARGE, "NO", Graphics.TEXT_JUSTIFY_CENTER);
+    private function updateEta(info as Activity.Info) as Void {
+        if (info.elapsedDistance != null && info.timerTime != null) {
+            var speed = _recentPace.update(
+                info.elapsedDistance, info.timerTime, info.averageSpeed);
+            _screenState.etaText = RecentPaceEstimator.formatEta(
+                _distanceRideGoal.remainingMeters, speed);
+            var trend = _etaTrend.update(
+                info.timerTime, _distanceRideGoal.remainingMeters, speed);
+            _screenState.etaTrendState = trend.trend;
+            _screenState.etaTrendMinutes = trend.minutes;
+        } else {
+            _screenState.etaText = RecentPaceEstimator.formatEta(
+                _distanceRideGoal.remainingMeters, info.averageSpeed);
+            _screenState.etaTrendState = :measuring;
+            _screenState.etaTrendMinutes = 0;
+        }
     }
 
     private function updateRideLifecycle(info as Activity.Info) as Void {
@@ -396,20 +122,14 @@ class CyclingGoalsView extends WatchUi.DataField {
         var timer = info.timerTime == null ? -1 : info.timerTime.toNumber();
         if ((_lastRideDistance >= 0 && distance >= 0 && distance < _lastRideDistance)
                 || (_lastTimerTime >= 0 && timer >= 0 && timer < _lastTimerTime)) {
-            _bonusRoundsAccepted = 0;
-            _bonusOfferDeclined = false;
-            _elevationBonusRoundsAccepted = 0;
-            _elevationBonusOfferDeclined = false;
+            _distanceRideGoal.resetBonus();
+            _elevationRideGoal.resetBonus();
             _distanceBonusRoundsAlerted = 0;
             _elevationBonusRoundsAlerted = 0;
             _rideEnded = false;
             _sawActiveTimer = false;
-            _lastDistanceFraction = -1.0;
-            _distanceHalfwayAlerted = false;
-            _distanceCompleteAlerted = false;
-            _lastElevationFraction = -1.0;
-            _elevationHalfwayAlerted = false;
-            _elevationCompleteAlerted = false;
+            _distanceMilestones.reset();
+            _elevationMilestones.reset();
         }
         _lastRideDistance = distance;
         _lastTimerTime = timer;
@@ -421,80 +141,49 @@ class CyclingGoalsView extends WatchUi.DataField {
         }
     }
 
-    private function updateDistanceMilestone(remaining as Lang.Numeric, target as Lang.Numeric) as Void {
-        if (target <= 0) { return; }
-        var fraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        if (GoalCalculator.crossedGoal(_lastDistanceFraction, remaining, target)
-                && !_distanceCompleteAlerted && GoalStore.alertEnabled(:goal)) {
-            _distanceCompleteAlerted = true;
-            _distanceHalfwayAlerted = true;
-            if (WatchUi.DataField has :showAlert) {
-                WatchUi.DataField.showAlert(new MilestoneAlertView(
-                    "GOAL COMPLETE", "0.0 " + DistanceUnits.label() + " TO GO",
-                    :distance_complete));
-            }
-            if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
-                Attention.playTone(Attention.TONE_SUCCESS);
-            }
-        } else if (GoalCalculator.crossedHalfway(_lastDistanceFraction, remaining, target)
-                && !_distanceHalfwayAlerted && GoalStore.alertEnabled(:halfway)) {
-            _distanceHalfwayAlerted = true;
-            if (WatchUi.DataField has :showAlert) {
-                WatchUi.DataField.showAlert(new MilestoneAlertView(
-                    "HALFWAY THERE",
-                    DistanceUnits.fromMeters(remaining).format("%.1f") + " "
-                        + DistanceUnits.label() + " REMAINING", :distance));
-            }
-            if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
-                Attention.playTone(Attention.TONE_DISTANCE_ALERT);
-            }
+    private function showRequiredMilestone(event as Lang.Symbol,
+            isElevation as Lang.Boolean, remaining as Lang.Numeric) as Void {
+        if (event == :none) { return; }
+        var isComplete = event == :complete;
+        var title = isComplete ? "GOAL COMPLETE" : "HALFWAY THERE";
+        var detail;
+        var icon;
+        if (isElevation) {
+            detail = isComplete ? "0 " + ElevationUnits.label() + " TO GO"
+                : ElevationUnits.fromMeters(remaining).format("%.0f") + " "
+                    + ElevationUnits.label() + " TO GO";
+            icon = isComplete ? :elevation_complete : :elevation;
+        } else {
+            detail = isComplete ? "0.0 " + DistanceUnits.label() + " TO GO"
+                : DistanceUnits.fromMeters(remaining).format("%.1f") + " "
+                    + DistanceUnits.label() + " REMAINING";
+            icon = isComplete ? :distance_complete : :distance;
         }
-        _lastDistanceFraction = fraction;
-    }
-
-    private function updateElevationMilestone(remaining as Lang.Numeric, target as Lang.Numeric) as Void {
-        if (target <= 0) { return; }
-        var fraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        if (GoalCalculator.crossedGoal(_lastElevationFraction, remaining, target)
-                && !_elevationCompleteAlerted && GoalStore.alertEnabled(:goal)) {
-            _elevationCompleteAlerted = true;
-            _elevationHalfwayAlerted = true;
-            if (WatchUi.DataField has :showAlert) {
-                WatchUi.DataField.showAlert(new MilestoneAlertView(
-                    "GOAL COMPLETE", "0 " + ElevationUnits.label() + " TO GO",
-                    :elevation_complete));
-            }
-            if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
-                Attention.playTone(Attention.TONE_SUCCESS);
-            }
-        } else if (GoalCalculator.crossedHalfway(_lastElevationFraction, remaining, target)
-                && !_elevationHalfwayAlerted && GoalStore.alertEnabled(:halfway)) {
-            _elevationHalfwayAlerted = true;
-            if (WatchUi.DataField has :showAlert) {
-                WatchUi.DataField.showAlert(new MilestoneAlertView(
-                    "HALFWAY THERE",
-                    ElevationUnits.fromMeters(remaining).format("%.0f") + " "
-                        + ElevationUnits.label() + " TO GO", :elevation));
-            }
-            if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
-                Attention.playTone(Attention.TONE_DISTANCE_ALERT);
-            }
+        if (WatchUi.DataField has :showAlert) {
+            WatchUi.DataField.showAlert(new MilestoneAlertView(title, detail, icon));
         }
-        _lastElevationFraction = fraction;
+        if (GoalStore.alertEnabled(:sound) && (Attention has :playTone)) {
+            Attention.playTone(isComplete
+                ? Attention.TONE_SUCCESS : Attention.TONE_DISTANCE_ALERT);
+        }
     }
 
-    private function updateDistanceBonusMilestone(progress as Lang.Numeric) as Void {
-        if (!GoalCalculator.bonusRoundCompleted(progress, _bonusTargetMeters,
-                _bonusRoundsAccepted, _distanceBonusRoundsAlerted)) { return; }
-        _distanceBonusRoundsAlerted = _bonusRoundsAccepted;
-        showBonusCompleteAlert(false);
+    private function isBonusActive(goal as RideGoalState) as Lang.Boolean {
+        return goal.displayMode == :bonus || goal.displayMode == :bonus_prompt;
     }
 
-    private function updateElevationBonusMilestone(progress as Lang.Numeric) as Void {
-        if (!GoalCalculator.bonusRoundCompleted(progress, _bonusElevationTargetMeters,
-                _elevationBonusRoundsAccepted, _elevationBonusRoundsAlerted)) { return; }
-        _elevationBonusRoundsAlerted = _elevationBonusRoundsAccepted;
-        showBonusCompleteAlert(true);
+    private function updateBonusMilestone(progress as Lang.Numeric,
+            goal as RideGoalState, isElevation as Lang.Boolean) as Void {
+        var alertedRounds = isElevation
+            ? _elevationBonusRoundsAlerted : _distanceBonusRoundsAlerted;
+        if (!GoalCalculator.bonusRoundCompleted(progress, goal.bonusTargetMeters,
+                goal.bonusRoundsAccepted, alertedRounds)) { return; }
+        if (isElevation) {
+            _elevationBonusRoundsAlerted = goal.bonusRoundsAccepted;
+        } else {
+            _distanceBonusRoundsAlerted = goal.bonusRoundsAccepted;
+        }
+        showBonusCompleteAlert(isElevation);
     }
 
     private function showBonusCompleteAlert(isElevation as Lang.Boolean) as Void {
@@ -510,42 +199,4 @@ class CyclingGoalsView extends WatchUi.DataField {
             Attention.playTone(Attention.TONE_SUCCESS);
         }
     }
-
-    private function drawEtaTrend(dc as Graphics.Dc, x as Lang.Number, centerY as Lang.Number) as Void {
-        var iconX = x - 33;
-        var textX = x + 7;
-        if (_etaTrendState == :ahead) {
-            drawTrendArrow(dc, iconX, centerY - 3, true);
-            dc.drawText(textX, centerY - 13, Graphics.FONT_MEDIUM,
-                _etaTrendMinutes.format("%02d") + " MIN", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(textX, centerY + 10, Graphics.FONT_SMALL, "AHEAD", Graphics.TEXT_JUSTIFY_CENTER);
-        } else if (_etaTrendState == :behind) {
-            drawTrendArrow(dc, iconX, centerY - 3, false);
-            dc.drawText(textX, centerY - 13, Graphics.FONT_MEDIUM,
-                _etaTrendMinutes.format("%02d") + " MIN", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(textX, centerY + 10, Graphics.FONT_SMALL, "BEHIND", Graphics.TEXT_JUSTIFY_CENTER);
-        } else if (_etaTrendState == :on_pace) {
-            drawPaceMarker(dc, iconX, centerY);
-            dc.drawText(textX, centerY - 12, Graphics.FONT_MEDIUM, "ON", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(textX, centerY + 10, Graphics.FONT_SMALL, "PACE", Graphics.TEXT_JUSTIFY_CENTER);
-        } else {
-            dc.drawText(x, centerY - 1, Graphics.FONT_SMALL, "MEASURING", Graphics.TEXT_JUSTIFY_CENTER);
-        }
-    }
-
-    private function drawPaceMarker(dc as Graphics.Dc, x as Lang.Number, y as Lang.Number) as Void {
-        dc.fillPolygon([
-            [x, y - 9], [x + 3, y - 3], [x + 9, y], [x + 3, y + 3],
-            [x, y + 9], [x - 3, y + 3], [x - 9, y], [x - 3, y - 3]
-        ]);
-    }
-
-    private function drawTrendArrow(dc as Graphics.Dc, x as Lang.Number, y as Lang.Number,
-            pointsUp as Lang.Boolean) as Void {
-        var points = pointsUp
-            ? [[x, y - 6], [x - 8, y + 6], [x + 8, y + 6]]
-            : [[x - 8, y - 6], [x + 8, y - 6], [x, y + 6]];
-        dc.fillPolygon(points);
-    }
-
 }

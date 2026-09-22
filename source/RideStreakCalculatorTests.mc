@@ -27,44 +27,68 @@ class StreakHistoryIterator {
     }
 }
 
+class StreakHistoryProvider extends ActivityHistoryProvider {
+    private var _items as Lang.Array;
+
+    function initialize(items as Lang.Array) { _items = items; }
+    function iterator() { return new StreakHistoryIterator(_items); }
+}
+
 class RideStreakCalculatorTests {
     (:test)
     static function consecutiveRideDaysEndingYesterdayCountBeforeRide(logger) as Lang.Boolean {
-        return streak([ride(2026, 9, 13), ride(2026, 9, 12),
-            ride(2026, 9, 11)], false) == 3;
+        setHistory([ride(2026, 9, 13), ride(2026, 9, 12), ride(2026, 9, 11)]);
+        var streak = RideStreakCalculator.count(false);
+        GoalRuntime.resetProviders();
+        return streak == 3;
     }
 
     (:test)
     static function multipleRidesInOneDayCountOnce(logger) as Lang.Boolean {
-        return streak([ride(2026, 9, 13), ride(2026, 9, 13),
-            ride(2026, 9, 12)], false) == 2;
+        setHistory([ride(2026, 9, 13), ride(2026, 9, 13), ride(2026, 9, 12)]);
+        var streak = RideStreakCalculator.count(false);
+        GoalRuntime.resetProviders();
+        return streak == 2;
     }
 
     (:test)
     static function missingYesterdayResetsPreRideStreak(logger) as Lang.Boolean {
-        return streak([ride(2026, 9, 12), ride(2026, 9, 11)], false) == 0;
+        setHistory([ride(2026, 9, 12), ride(2026, 9, 11)]);
+        var streak = RideStreakCalculator.count(false);
+        GoalRuntime.resetProviders();
+        return streak == 0;
     }
 
     (:test)
     static function activeRideStartsNewStreakAfterMissedDay(logger) as Lang.Boolean {
-        return streak([ride(2026, 9, 12)], true) == 1;
+        setHistory([ride(2026, 9, 12)]);
+        var streak = RideStreakCalculator.count(true);
+        GoalRuntime.resetProviders();
+        return streak == 1;
     }
 
     (:test)
     static function activeRideExtendsStreakEndingYesterday(logger) as Lang.Boolean {
-        return streak([ride(2026, 9, 13), ride(2026, 9, 12),
-            ride(2026, 9, 11)], true) == 4;
+        setHistory([ride(2026, 9, 13), ride(2026, 9, 12), ride(2026, 9, 11)]);
+        var streak = RideStreakCalculator.count(true);
+        GoalRuntime.resetProviders();
+        return streak == 4;
     }
 
     (:test)
     static function completedRideTodayAlreadyExtendsStreak(logger) as Lang.Boolean {
-        return streak([ride(2026, 9, 14), ride(2026, 9, 13),
-            ride(2026, 9, 12)], false) == 3;
+        setHistory([ride(2026, 9, 14), ride(2026, 9, 13), ride(2026, 9, 12)]);
+        var streak = RideStreakCalculator.count(false);
+        GoalRuntime.resetProviders();
+        return streak == 3;
     }
 
     (:test)
     static function rideDistanceIsNotRequired(logger) as Lang.Boolean {
-        return streak([ride(2026, 9, 13), ride(2026, 9, 12)], false) == 2;
+        setHistory([ride(2026, 9, 13), ride(2026, 9, 12)]);
+        var streak = RideStreakCalculator.count(false);
+        GoalRuntime.resetProviders();
+        return streak == 2;
     }
 
     (:test)
@@ -89,11 +113,9 @@ class RideStreakCalculatorTests {
             && !RideStreakCalculator.shouldDisplay(true, :on_pace, 7);
     }
 
-    private static function streak(items as Lang.Array,
-            activeRideToday as Lang.Boolean) as Lang.Number {
-        var today = Gregorian.info(midday(2026, 9, 14), Time.FORMAT_SHORT);
-        return RideStreakCalculator.countFrom(
-            new StreakHistoryIterator(items), today, activeRideToday);
+    private static function setHistory(items as Lang.Array) as Void {
+        GoalRuntime.setProvidersForTests(new FixedGoalClock(midday(2026, 9, 14)),
+            new StreakHistoryProvider(items));
     }
 
     private static function ride(year as Lang.Number, month as Lang.Number,

@@ -37,71 +37,16 @@ class AboutSettingsDelegate extends WatchUi.Menu2InputDelegate {
 }
 
 class GoalPickerDelegate extends WatchUi.PickerDelegate {
-    private var _kind as Lang.Symbol;
+    private var _definition as GoalSettingDefinition;
 
     function initialize(kind as Lang.Symbol) {
         PickerDelegate.initialize();
-        _kind = kind;
+        _definition = GoalSettingCatalog.definition(kind);
     }
 
     function onAccept(values as Lang.Array) as Lang.Boolean {
         var value = values[0] as Lang.Number;
-        if (_kind == :rest_weekdays) {
-            GoalStore.saveRestWeekdays(value);
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        if (_kind == :long_days) {
-            GoalStore.saveLongDays(value);
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        if (_kind == :long_day_distance) {
-            GoalStore.saveLongDayDistanceGoal(DistanceUnits.toMeters(value));
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        if (_kind == :long_day_elevation) {
-            GoalStore.saveLongDayElevationGoal(ElevationUnits.toMeters(value));
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        if (_kind == :weekday_distance_limit) {
-            GoalStore.saveWeekdayDistanceLimit(
-                value == 0 ? null : DistanceUnits.toMeters(value));
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        if (_kind == :weekday_elevation_limit) {
-            GoalStore.saveWeekdayElevationLimit(
-                value == 0 ? null : ElevationUnits.toMeters(value));
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        if (_kind == :daily_elevation) {
-            GoalStore.saveDailyElevationGoal(ElevationUnits.toMeters(value));
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        if (_kind == :bonus_elevation) {
-            GoalStore.saveBonusElevationGoal(value == 0 ? null : ElevationUnits.toMeters(value));
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        var meters = DistanceUnits.toMeters(value);
-        if (_kind == :bonus) {
-            GoalStore.saveBonusDistanceGoal(value == 0 ? null : meters);
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return true;
-        }
-        var goals = GoalStore.getGoals();
-
-        if (_kind == :yearly) { goals[0] = meters; }
-        else if (_kind == :monthly) { goals[1] = meters; }
-        else if (_kind == :weekly) { goals[2] = meters; }
-        else { GoalStore.saveDailyOverride(GoalDate.todayKey(), value == 0 ? null : meters); }
-
-        if (_kind != :daily) { GoalStore.saveGoals(goals); }
+        _definition.saveValue(value);
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }
@@ -114,7 +59,7 @@ class GoalPickerDelegate extends WatchUi.PickerDelegate {
 
 class GoalDate {
     static function todayKey() as Lang.Number {
-        var date = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var date = Gregorian.info(GoalRuntime.now(), Time.FORMAT_SHORT);
         return (date.year * 10000) + (date.month * 100) + date.day;
     }
 }

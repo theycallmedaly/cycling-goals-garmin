@@ -38,18 +38,18 @@ class GoalStore {
             && Application.Storage.getValue(WEEK_KEY) != null;
     }
 
-    static function getGoals() as Lang.Array<Lang.Numeric> {
-        return [
+    static function getGoals() as DistanceGoals {
+        return new DistanceGoals(
             valueOrDefault(YEAR_KEY, DEFAULT_YEAR_METERS),
             valueOrDefault(MONTH_KEY, DEFAULT_MONTH_METERS),
             valueOrDefault(WEEK_KEY, DEFAULT_WEEK_METERS)
-        ];
+        );
     }
 
-    static function saveGoals(goals as Lang.Array<Lang.Numeric>) as Void {
-        Application.Storage.setValue(YEAR_KEY, goals[0]);
-        Application.Storage.setValue(MONTH_KEY, goals[1]);
-        Application.Storage.setValue(WEEK_KEY, goals[2]);
+    static function saveGoals(goals as DistanceGoals) as Void {
+        Application.Storage.setValue(YEAR_KEY, goals.yearlyMeters);
+        Application.Storage.setValue(MONTH_KEY, goals.monthlyMeters);
+        Application.Storage.setValue(WEEK_KEY, goals.weeklyMeters);
     }
 
     static function getDailyOverride(dateKey as Lang.Number) as Lang.Numeric or Null {

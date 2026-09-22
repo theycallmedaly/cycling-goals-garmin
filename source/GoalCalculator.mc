@@ -3,17 +3,11 @@ using Toybox.Lang;
 using Toybox.System;
 using Toybox.Time;
 using Toybox.Time.Gregorian;
-using Toybox.UserProfile;
 
 class GoalCalculator {
-    static function remainingForToday(info as Activity.Info) as Lang.Float {
-        return distanceStateForToday(info)[0];
-    }
-
-    // Required remaining, required target, completed today, original automatic target
-    // (meters), and 1.0 when a weekday limit is active.
-    static function distanceStateForToday(info as Activity.Info) as Lang.Array<Lang.Float> {
-        var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+    // Builds the named distance state consumed by the ride view.
+    static function distanceStateForToday(info as Activity.Info) as DistanceGoalState {
+        var today = Gregorian.info(GoalRuntime.now(), Time.FORMAT_SHORT);
         var goals = GoalStore.getGoals();
         var totals = historyBeforeAndToday(today);
         var override = GoalStore.getDailyOverride(dateKey(today));
@@ -21,43 +15,40 @@ class GoalCalculator {
         var todayNumber = today.day_of_week as Lang.Number;
 
         var automaticState = calculateScheduledAutomaticGoal(
-                goals[0], totals[0], daysRemainingInYear(today),
-                goals[1], totals[1], daysRemainingInMonth(today),
-                goals[2], totals[2], daysRemainingInConfiguredWeek(todayNumber, firstDay),
+                goals.yearlyMeters, totals.yearBeforeTodayMeters, daysRemainingInYear(today),
+                goals.monthlyMeters, totals.monthBeforeTodayMeters, daysRemainingInMonth(today),
+                goals.weeklyMeters, totals.weekBeforeTodayMeters,
+                daysRemainingInConfiguredWeek(todayNumber, firstDay),
                 isLastDayOfConfiguredWeek(todayNumber, firstDay), daysRemainingInMonth(today) <= 5,
                 todayNumber, GoalStore.getRestWeekdays(), GoalStore.getLongDays(),
-                GoalStore.getLongDayDistanceGoal(), totals[4].toNumber(),
+                GoalStore.getLongDayDistanceGoal(), totals.usedWeekdayRideDays,
                 GoalStore.getWeekdayDistanceLimit());
-        var automatic = automaticState[0];
+        var automatic = automaticState.targetMeters;
         var suggested = override == null ? automatic : override.toFloat();
-        var limitApplied = override == null ? automaticState[1] : 0.0;
+        var limitApplied = override == null && automaticState.weekdayLimitApplied;
 
         var currentRide = info.elapsedDistance == null ? 0.0 : info.elapsedDistance.toFloat();
-        var completedToday = totals[3] + currentRide;
-        return [remainingAfterProgress(suggested, totals[3], currentRide), suggested,
-            completedToday, automatic, limitApplied, automaticState[2]];
+        var completedToday = totals.completedTodayMeters + currentRide;
+        return new DistanceGoalState(
+            remainingAfterProgress(suggested, totals.completedTodayMeters, currentRide), suggested,
+            completedToday, automatic, limitApplied, automaticState.availableToday);
     }
 
-    static function remainingElevationForToday(info as Activity.Info) as Lang.Float {
-        var distanceState = distanceStateForToday(info);
-        return elevationStateForToday(info, distanceState[5] > 0)[0];
-    }
-
-    // Remaining elevation, today's elevation target (meters), and 1.0 when a
-    // weekday limit is active.
+    // Builds the named elevation state consumed by the ride view.
     static function elevationStateForToday(info as Activity.Info,
-            weekdayAvailable as Lang.Boolean) as Lang.Array<Lang.Float> {
+            weekdayAvailable as Lang.Boolean) as ElevationGoalState {
         var currentAscent = info.totalAscent == null ? 0.0 : info.totalAscent.toFloat();
-        var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var today = Gregorian.info(GoalRuntime.now(), Time.FORMAT_SHORT);
         var targetState = scheduledElevationTarget(GoalStore.getDailyElevationGoal(),
             today.day_of_week as Lang.Number, GoalStore.getRestWeekdays(),
             GoalStore.getLongDays(), GoalStore.getLongDayElevationGoal(),
             GoalStore.getWeekdayElevationLimit());
         if (!weekdayAvailable && isWeekday(today.day_of_week as Lang.Number)) {
-            targetState = [0.0, 0.0];
+            targetState = new ScheduledTarget(0.0, false);
         }
-        return [remainingAfterProgress(targetState[0], 0.0, currentAscent),
-            targetState[0], targetState[1]];
+        return new ElevationGoalState(
+            remainingAfterProgress(targetState.targetMeters, 0.0, currentAscent),
+            targetState.targetMeters, targetState.weekdayLimitApplied);
     }
 
     static function calculateScheduledAutomaticGoal(
@@ -68,7 +59,7 @@ class GoalCalculator {
         todayNumber as Lang.Number, restWeekdays as Lang.Number, longDays as Lang.Number,
         longDayDistance as Lang.Numeric, usedWeekdayRideDays as Lang.Number,
         weekdayLimit as Lang.Numeric or Null
-    ) as Lang.Array<Lang.Float> {
+    ) as ScheduledAutomaticTarget {
         var isWeekdayToday = isWeekday(todayNumber);
         var isLongDayToday = isLongDay(todayNumber, longDays);
         var yearCounts = scheduleCounts(todayNumber, yearDays, restWeekdays,
@@ -95,19 +86,21 @@ class GoalCalculator {
         var availableToday = !isWeekdayToday
             || usedWeekdayRideDays < maximumNumber(0, 5 - restWeekdays);
         if (!availableToday) {
-            yearState = [0.0, 0.0];
-            monthState = [0.0, 0.0];
-            weekState = [0.0, 0.0];
+            yearState = new ScheduledTarget(0.0, false);
+            monthState = new ScheduledTarget(0.0, false);
+            weekState = new ScheduledTarget(0.0, false);
         }
-        var suggested = maximum(yearState[0], maximum(monthState[0], weekState[0]));
-        var limited = yearState[1] > 0 || monthState[1] > 0 || weekState[1] > 0;
-        return [suggested, limited ? 1.0 : 0.0, availableToday ? 1.0 : 0.0];
+        var suggested = maximum(yearState.targetMeters,
+            maximum(monthState.targetMeters, weekState.targetMeters));
+        var limited = yearState.weekdayLimitApplied || monthState.weekdayLimitApplied
+            || weekState.weekdayLimitApplied;
+        return new ScheduledAutomaticTarget(suggested, limited, availableToday);
     }
 
     // Available ordinary weekday slots, ordinary weekend slots, and long-day slots.
     static function scheduleCounts(startDay as Lang.Number, days as Lang.Number,
             restWeekdays as Lang.Number, longDays as Lang.Number,
-            usedWeekdayRideDays as Lang.Number) as Lang.Array<Lang.Number> {
+            usedWeekdayRideDays as Lang.Number) as ScheduleCounts {
         var boundedRest = restWeekdays < 0 ? 0 : (restWeekdays > 5 ? 5 : restWeekdays);
         var boundedLong = longDays < 0 ? 0 : (longDays > 2 ? 2 : longDays);
         var firstLength = minimumNumber(days,
@@ -127,18 +120,18 @@ class GoalCalculator {
         var longSlots = boundedLong >= 1 ? saturdays : 0;
         if (boundedLong >= 2) { longSlots += sundays; }
         var ordinaryWeekendSlots = saturdays + sundays - longSlots;
-        return [weekdaySlots, ordinaryWeekendSlots, longSlots];
+        return new ScheduleCounts(weekdaySlots, ordinaryWeekendSlots, longSlots);
     }
 
-    // Returns today's target followed by a numeric weekday-limit flag.
+    // Returns today's target and whether the weekday limit supplied that target.
     static function scheduledPeriodTarget(remainingGoal as Lang.Numeric,
-            counts as Lang.Array<Lang.Number>, isWeekdayToday as Lang.Boolean,
+            counts as ScheduleCounts, isWeekdayToday as Lang.Boolean,
             isLongDayToday as Lang.Boolean,
             longDayDistance as Lang.Numeric,
-            weekdayLimit as Lang.Numeric or Null) as Lang.Array<Lang.Float> {
-        var weekdaySlots = counts[0];
-        var ordinaryWeekendSlots = counts[1];
-        var longSlots = counts[2];
+            weekdayLimit as Lang.Numeric or Null) as ScheduledTarget {
+        var weekdaySlots = counts.weekdaySlots;
+        var ordinaryWeekendSlots = counts.ordinaryWeekendSlots;
+        var longSlots = counts.longDaySlots;
         var regularSlots = weekdaySlots + ordinaryWeekendSlots;
         var goal = remainingGoal.toFloat();
         var regularTarget = 0.0;
@@ -177,68 +170,31 @@ class GoalCalculator {
         }
 
         if (isWeekdayToday) {
-            if (weekdaySlots <= 0) { return [0.0, 0.0]; }
-            return [limited ? weekdayLimit.toFloat() : regularTarget,
-                limited ? 1.0 : 0.0];
+            if (weekdaySlots <= 0) { return new ScheduledTarget(0.0, false); }
+            return new ScheduledTarget(
+                limited ? weekdayLimit.toFloat() : regularTarget, limited);
         }
-        return [isLongDayToday ? longTarget : regularTarget, 0.0];
+        return new ScheduledTarget(isLongDayToday ? longTarget : regularTarget, false);
     }
 
     static function scheduledElevationTarget(baseTarget as Lang.Numeric,
             todayNumber as Lang.Number, restWeekdays as Lang.Number,
             longDays as Lang.Number, longDayElevation as Lang.Numeric,
             weekdayLimit as Lang.Numeric or Null
-    ) as Lang.Array<Lang.Float> {
+    ) as ScheduledTarget {
         if (isLongDay(todayNumber, longDays)) {
-            return [longDayElevation.toFloat(), 0.0];
+            return new ScheduledTarget(longDayElevation, false);
         }
-        if (!isWeekday(todayNumber)) { return [baseTarget.toFloat(), 0.0]; }
+        if (!isWeekday(todayNumber)) { return new ScheduledTarget(baseTarget, false); }
         var rideWeekdays = 5 - restWeekdays;
-        if (rideWeekdays <= 0) { return [0.0, 0.0]; }
+        if (rideWeekdays <= 0) { return new ScheduledTarget(0.0, false); }
         var target = baseTarget.toFloat() * 5 / rideWeekdays;
         return applyWeekdayLimit(target, true, weekdayLimit);
-    }
-
-    static function calculateAutomaticGoal(
-        yearGoal as Lang.Numeric, yearBeforeToday as Lang.Numeric, yearDays as Lang.Number,
-        monthGoal as Lang.Numeric, monthBeforeToday as Lang.Numeric, monthDays as Lang.Number,
-        weekGoal as Lang.Numeric, weekBeforeToday as Lang.Numeric, weekDays as Lang.Number,
-        isLastDayOfWeek as Lang.Boolean, isMonthEndWindow as Lang.Boolean) as Lang.Float {
-
-        var yearDaily = remaining(yearGoal, yearBeforeToday) / yearDays;
-        var monthDaily = remaining(monthGoal, monthBeforeToday) / monthDays;
-        var weekDaily = remaining(weekGoal, weekBeforeToday) / weekDays;
-        var suggested = maximum(yearDaily, maximum(monthDaily, weekDaily));
-
-        if (isLastDayOfWeek) {
-            suggested = maximum(suggested, remaining(weekGoal, weekBeforeToday));
-            if (isMonthEndWindow) {
-                suggested = maximum(suggested, remaining(monthGoal, monthBeforeToday));
-            }
-        }
-        return suggested;
     }
 
     static function remainingAfterProgress(target as Lang.Numeric, completedToday as Lang.Numeric,
             currentRide as Lang.Numeric) as Lang.Float {
         return maximum(0.0, target.toFloat() - completedToday.toFloat() - currentRide.toFloat());
-    }
-
-    static function crossedHalfway(previousFraction as Lang.Numeric, remaining as Lang.Numeric,
-            target as Lang.Numeric) as Lang.Boolean {
-        if (target <= 0 || previousFraction >= 0.5) { return false; }
-        var currentFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        // Garmin may not run a data field until its screen becomes active. Treat the
-        // first reading as a transition from the start of the ride so a milestone
-        // already crossed while another data screen was visible is not discarded.
-        return currentFraction >= 0.5;
-    }
-
-    static function crossedGoal(previousFraction as Lang.Numeric, remaining as Lang.Numeric,
-            target as Lang.Numeric) as Lang.Boolean {
-        if (target <= 0 || previousFraction >= 1.0) { return false; }
-        var currentFraction = (target.toFloat() - remaining.toFloat()) / target.toFloat();
-        return currentFraction >= 1.0;
     }
 
     static function daysSinceConfiguredWeekStart(dayOfWeek as Lang.Number,
@@ -286,16 +242,16 @@ class GoalCalculator {
         return progress.toFloat() >= bonusBlock.toFloat() * acceptedRounds;
     }
 
-    // Meters before today for year/month/week, meters completed today, then the
-    // number of distinct weekday ride days already used in the current calendar week.
-    private static function historyBeforeAndToday(today as Gregorian.Info) as Lang.Array<Lang.Float> {
-        var totals = [0.0, 0.0, 0.0, 0.0, 0.0];
+    // Collects named period totals and the distinct weekday ride days already
+    // used in the current calendar week.
+    private static function historyBeforeAndToday(today as Gregorian.Info) as HistoryTotals {
+        var totals = new HistoryTotals();
         var usedWeekdayDates = [];
         var firstDay = System.getDeviceSettings().firstDayOfWeek;
         var todayNumber = today.day_of_week as Lang.Number;
         var daysSinceWeekStart = daysSinceConfiguredWeekStart(todayNumber, firstDay);
         var daysSinceMonday = daysSinceConfiguredWeekStart(todayNumber, Gregorian.DAY_MONDAY);
-        var iterator = UserProfile.getUserActivityHistory();
+        var iterator = GoalRuntime.activityHistoryIterator();
         var item = iterator.next();
         while (item != null) {
             if (item.startTime != null && item.distance != null && item.type == Activity.SPORT_CYCLING) {
@@ -309,29 +265,33 @@ class GoalCalculator {
                 // Do not rely on the iterator returning newest activities first.
                 var meters = item.distance.toFloat();
                 if (sameDate(date, today)) {
-                    totals[3] += meters;
+                    totals.completedTodayMeters += meters;
                 } else if (age > 0) {
                     if (date.year == today.year) {
-                        totals[0] += meters;
-                        if (date.month == today.month) { totals[1] += meters; }
+                        totals.yearBeforeTodayMeters += meters;
+                        if (date.month == today.month) {
+                            totals.monthBeforeTodayMeters += meters;
+                        }
                     }
                     // A configured week can cross a month or year boundary.
-                    if (age <= daysSinceWeekStart) { totals[2] += meters; }
+                    if (age <= daysSinceWeekStart) {
+                        totals.weekBeforeTodayMeters += meters;
+                    }
                 }
             }
             item = iterator.next();
         }
-        totals[4] = usedWeekdayDates.size().toFloat();
+        totals.usedWeekdayRideDays = usedWeekdayDates.size();
         return totals;
     }
 
     private static function applyWeekdayLimit(target as Lang.Numeric,
             isWeekdayToday as Lang.Boolean, weekdayLimit as Lang.Numeric or Null
-    ) as Lang.Array<Lang.Float> {
+    ) as ScheduledTarget {
         if (isWeekdayToday && weekdayLimit != null && target > weekdayLimit) {
-            return [weekdayLimit.toFloat(), 1.0];
+            return new ScheduledTarget(weekdayLimit, true);
         }
-        return [target.toFloat(), 0.0];
+        return new ScheduledTarget(target, false);
     }
 
     private static function isWeekday(day as Lang.Number) as Lang.Boolean {

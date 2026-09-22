@@ -5,60 +5,25 @@ using Toybox.WatchUi;
 class GoalSetupView {
     static function createMenu() as WatchUi.Menu2 {
         var menu = new WatchUi.Menu2({:title=>"GOALS"});
-        var goals = GoalStore.getGoals();
-        var daily = GoalStore.getDailyOverride(GoalDate.todayKey());
-        var dailyText = daily == null ? "AUTO based on larger goals"
-            : distanceText(daily);
-        menu.addItem(new WatchUi.MenuItem("Yearly Distance",
-            distanceText(goals[0]), :yearly, {}));
-        menu.addItem(new WatchUi.MenuItem("Monthly Distance",
-            distanceText(goals[1]), :monthly, {}));
-        menu.addItem(new WatchUi.MenuItem("Weekly Distance",
-            distanceText(goals[2]), :weekly, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily Distance", dailyText, :daily, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily Elevation",
-            elevationText(GoalStore.getDailyElevationGoal()), :daily_elevation, {}));
-        menu.addItem(new WatchUi.MenuItem("Long Day Distance",
-            distanceText(GoalStore.getLongDayDistanceGoal()), :long_day_distance, {}));
-        menu.addItem(new WatchUi.MenuItem("Long Day Elevation",
-            elevationText(GoalStore.getLongDayElevationGoal()), :long_day_elevation, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily Bonus Distance",
-            "Auto: 50% of daily", :bonus, {}));
-        menu.addItem(new WatchUi.MenuItem("Daily Bonus Elevation",
-            "Auto: daily elevation", :bonus_elevation, {}));
+        var definitions = GoalSettingCatalog.goalDefinitions();
+        for (var i = 0; i < definitions.size(); i += 1) {
+            var definition = definitions[i];
+            menu.addItem(new WatchUi.MenuItem(definition.label,
+                definition.menuDetail(), definition.kind, {}));
+        }
         return menu;
-    }
-
-    private static function distanceText(meters as Lang.Numeric) as Lang.String {
-        return DistanceUnits.fromMeters(meters).format("%.0f")
-            + " " + DistanceUnits.label();
-    }
-
-    private static function elevationText(meters as Lang.Numeric) as Lang.String {
-        return ElevationUnits.fromMeters(meters).format("%.0f")
-            + " " + ElevationUnits.label();
     }
 }
 
 class HabitSettingsView {
     static function createMenu() as WatchUi.Menu2 {
         var menu = new WatchUi.Menu2({:title=>"HABITS"});
-        var distanceLimit = GoalStore.getWeekdayDistanceLimit();
-        var distanceLimitText = distanceLimit == null ? "NO LIMIT"
-            : DistanceUnits.fromMeters(distanceLimit).format("%.0f")
-                + " " + DistanceUnits.label();
-        var elevationLimit = GoalStore.getWeekdayElevationLimit();
-        var elevationLimitText = elevationLimit == null ? "NO LIMIT"
-            : ElevationUnits.fromMeters(elevationLimit).format("%.0f")
-                + " " + ElevationUnits.label();
-        menu.addItem(new WatchUi.MenuItem("Number of Rest Weekdays",
-            GoalStore.getRestWeekdays().toString(), :rest_weekdays, {}));
-        menu.addItem(new WatchUi.MenuItem("Number of Long Days",
-            GoalStore.getLongDays().toString(), :long_days, {}));
-        menu.addItem(new WatchUi.MenuItem("Weekday Distance Limit",
-            distanceLimitText, :weekday_distance_limit, {}));
-        menu.addItem(new WatchUi.MenuItem("Weekday Elevation Limit",
-            elevationLimitText, :weekday_elevation_limit, {}));
+        var definitions = GoalSettingCatalog.habitDefinitions();
+        for (var i = 0; i < definitions.size(); i += 1) {
+            var definition = definitions[i];
+            menu.addItem(new WatchUi.MenuItem(definition.label,
+                definition.menuDetail(), definition.kind, {}));
+        }
         return menu;
     }
 }
@@ -89,28 +54,20 @@ class GoalPicker extends WatchUi.Picker {
     private var _factory as GoalValueFactory;
 
     function initialize(kind as Lang.Symbol) {
-        var goal = goalForKind(kind);
-        var step = stepForKind(kind);
-        var maximum = maximumForKind(kind);
-        var zeroLabel = kind == :daily || kind == :bonus || kind == :bonus_elevation
-            ? "AUTO"
-            : (kind == :weekday_distance_limit || kind == :weekday_elevation_limit
-                ? "NO LIMIT" : null);
-        _factory = new GoalValueFactory(0, maximum, step,
-            zeroLabel);
-
+        var definition = GoalSettingCatalog.definition(kind);
+        _factory = new GoalValueFactory(definition.minimum, definition.maximum,
+            definition.step, definition.zeroLabel);
         var title = new WatchUi.Text({
-            :text=>pickerTitle(kind),
+            :text=>definition.pickerTitle(),
             :color=>Graphics.COLOR_WHITE,
             :font=>Graphics.FONT_SMALL,
             :locX=>WatchUi.LAYOUT_HALIGN_CENTER,
             :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM
         });
-
         Picker.initialize({
             :title=>title,
             :pattern=>[_factory],
-            :defaults=>[_factory.getIndex(goal)]
+            :defaults=>[_factory.getIndex(definition.currentValue())]
         });
     }
 
@@ -122,92 +79,6 @@ class GoalPicker extends WatchUi.Picker {
         dc.clear();
         Picker.onUpdate(dc);
     }
-
-    private function goalForKind(kind as Lang.Symbol) as Lang.Number {
-        if (kind == :rest_weekdays) { return GoalStore.getRestWeekdays(); }
-        if (kind == :long_days) { return GoalStore.getLongDays(); }
-        if (kind == :long_day_distance) {
-            return DistanceUnits.fromMeters(GoalStore.getLongDayDistanceGoal()).toNumber();
-        }
-        if (kind == :long_day_elevation) {
-            return ElevationUnits.fromMeters(GoalStore.getLongDayElevationGoal()).toNumber();
-        }
-        if (kind == :weekday_distance_limit) {
-            var distanceLimit = GoalStore.getWeekdayDistanceLimit();
-            return distanceLimit == null ? 0 : DistanceUnits.fromMeters(distanceLimit).toNumber();
-        }
-        if (kind == :weekday_elevation_limit) {
-            var elevationLimit = GoalStore.getWeekdayElevationLimit();
-            return elevationLimit == null ? 0 : ElevationUnits.fromMeters(elevationLimit).toNumber();
-        }
-        if (kind == :daily_elevation) {
-            return ElevationUnits.fromMeters(GoalStore.getDailyElevationGoal()).toNumber();
-        }
-        if (kind == :bonus_elevation) {
-            var elevationBonus = GoalStore.getBonusElevationGoal();
-            return elevationBonus == null ? 0 : ElevationUnits.fromMeters(elevationBonus).toNumber();
-        }
-        if (kind == :bonus) {
-            var bonus = GoalStore.getBonusDistanceGoal();
-            return bonus == null ? 0 : DistanceUnits.fromMeters(bonus).toNumber();
-        }
-        var goals = GoalStore.getGoals();
-        var meters;
-        if (kind == :yearly) { meters = goals[0]; }
-        else if (kind == :monthly) { meters = goals[1]; }
-        else if (kind == :weekly) { meters = goals[2]; }
-        else { meters = GoalStore.getDailyOverride(GoalDate.todayKey()); }
-        return meters == null ? 0 : DistanceUnits.fromMeters(meters).toNumber();
-    }
-
-    private function stepForKind(kind as Lang.Symbol) as Lang.Number {
-        if (kind == :rest_weekdays || kind == :long_days) { return 1; }
-        if (kind == :long_day_distance) { return 5; }
-        if (kind == :long_day_elevation) { return 100; }
-        if (kind == :yearly) { return 100; }
-        if (kind == :monthly) { return 10; }
-        if (kind == :weekly) { return 5; }
-        return 1;
-    }
-
-    private function maximumForKind(kind as Lang.Symbol) as Lang.Number {
-        if (kind == :rest_weekdays) { return 5; }
-        if (kind == :long_days) { return 2; }
-        if (kind == :long_day_distance) { return 500; }
-        if (kind == :long_day_elevation) { return 20000; }
-        if (kind == :weekday_elevation_limit) { return 20000; }
-        if (kind == :weekday_distance_limit) { return 500; }
-        if (kind == :daily_elevation || kind == :bonus_elevation) { return 20000; }
-        if (kind == :yearly) { return 50000; }
-        if (kind == :monthly) { return 5000; }
-        if (kind == :weekly) { return 1000; }
-        return 500;
-    }
-
-    private function pickerTitle(kind as Lang.Symbol) as Lang.String {
-        if (kind == :rest_weekdays) { return "REST WEEKDAYS PER WEEK"; }
-        if (kind == :long_days) { return "LONG DAYS PER WEEK"; }
-        if (kind == :long_day_distance) {
-            return "LONG DAY DISTANCE (" + DistanceUnits.label() + ")";
-        }
-        if (kind == :long_day_elevation) {
-            return "LONG DAY ELEVATION (" + ElevationUnits.label() + ")";
-        }
-        if (kind == :weekday_distance_limit) {
-            return "WEEKDAY LIMIT (" + DistanceUnits.label() + ")";
-        }
-        if (kind == :weekday_elevation_limit) {
-            return "WEEKDAY LIMIT (" + ElevationUnits.label() + ")";
-        }
-        if (kind == :daily_elevation) {
-            return "DAILY ELEVATION (" + ElevationUnits.label() + ")";
-        }
-        if (kind == :bonus_elevation) {
-            return "BONUS ELEVATION (" + ElevationUnits.label() + ")";
-        }
-        return (kind == :bonus ? "BONUS" : kind.toString().toUpper())
-            + " DISTANCE (" + DistanceUnits.label() + ")";
-    }
 }
 
 class GoalValueFactory extends WatchUi.PickerFactory {
@@ -216,8 +87,8 @@ class GoalValueFactory extends WatchUi.PickerFactory {
     private var _step as Lang.Number;
     private var _zeroLabel as Lang.String or Null;
 
-    function initialize(minimum as Lang.Number, maximum as Lang.Number, step as Lang.Number,
-            zeroLabel as Lang.String or Null) {
+    function initialize(minimum as Lang.Number, maximum as Lang.Number,
+            step as Lang.Number, zeroLabel as Lang.String or Null) {
         PickerFactory.initialize();
         _minimum = minimum;
         _maximum = maximum;
@@ -230,7 +101,8 @@ class GoalValueFactory extends WatchUi.PickerFactory {
         return ((bounded - _minimum) / _step).toNumber();
     }
 
-    function getDrawable(index as Lang.Number, isSelected as Lang.Boolean) as WatchUi.Drawable or Null {
+    function getDrawable(index as Lang.Number,
+            isSelected as Lang.Boolean) as WatchUi.Drawable or Null {
         var value = getValue(index) as Lang.Number;
         var text = _zeroLabel != null && value == 0
             ? (_zeroLabel as Lang.String) : value.toString();

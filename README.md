@@ -20,6 +20,10 @@ The rider can also set a daily elevation goal. It defaults to 1,370 feet and is 
 
 On supported color devices, the distance and elevation sections remain black so Garmin's native alerts stay visible. Slim side rails communicate each goal's status: red below 75% complete, white from 75% through 99.9%, and green when the goal is met. Distance and elevation change independently.
 
+Each distance and elevation progress bar emphasizes its current dash at twice
+the normal height. Once that block is complete, it returns to normal height and
+the next current dash becomes taller.
+
 The display also estimates the time needed to complete the remaining distance. It uses the ride average until five miles of data are available, then uses a rolling average of the most recent five miles. Paused time is excluded. The estimate appears in `00H:00M` format. After a 15-minute measuring period, the center section compares projected completion time with 15 minutes earlier: green and `AHEAD`, black and `ON PACE`, or red and `BEHIND`.
 
 Before a ride starts, the center section shows the rider's consecutive-day ride
